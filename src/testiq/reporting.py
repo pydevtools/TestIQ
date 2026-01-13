@@ -425,6 +425,88 @@ class HTMLReportGenerator:
             font-weight: 600;
             transition: width 0.3s ease;
         }}
+        .tabs {{
+            display: flex;
+            gap: 10px;
+            margin: 30px 0 20px 0;
+            border-bottom: 2px solid #ecf0f1;
+        }}
+        .tab {{
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+            position: relative;
+            bottom: -2px;
+        }}
+        .tab:hover {{
+            background: #e9ecef;
+            color: #495057;
+        }}
+        .tab.active {{
+            background: white;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }}
+        .tab-content {{
+            display: none;
+            animation: fadeIn 0.3s;
+        }}
+        .tab-content.active {{
+            display: block;
+        }}
+        .pagination {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }}
+        .page-btn {{
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }}
+        .page-btn:hover:not(:disabled) {{
+            background: #5568d3;
+            transform: translateY(-2px);
+        }}
+        .page-btn:disabled {{
+            background: #bdc3c7;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }}
+        .page-info {{
+            color: #7f8c8d;
+            font-weight: 600;
+        }}
+        .loading {{
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }}
+        .spinner {{
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
     </style>
 </head>
 <body>
@@ -457,107 +539,225 @@ class HTMLReportGenerator:
             </div>
         </div>
 
-        <h2>🎯 Exact Duplicates</h2>
-        <p>Tests with identical code coverage that can be safely removed.</p>
-"""
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('exact')">🎯 Exact Duplicates ({len(exact_dups)})</button>
+            <button class="tab" onclick="switchTab('similar')">🔍 Similar Tests ({len(similar)})</button>
+            <button class="tab" onclick="switchTab('subset')">📊 Subset Duplicates ({len(subset_dups)})</button>
+        </div>
 
-        if exact_dups:
-            html += """
-        <table>
-            <thead>
-                <tr>
-                    <th>Group</th>
-                    <th>Tests</th>
-                    <th>Count</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-            for i, group in enumerate(exact_dups, 1):
-                test_list = '<br>'.join([f'<span class="test-name">{test}</span>' for test in group])
-                html += f"""                <tr class="clickable-row" onclick="showComparison({i - 1})">
-                    <td><strong>Group {i}</strong></td>
-                    <td>{test_list}</td>
-                    <td><span class="badge badge-danger">{len(group)} tests</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-"""
-            html += """            </tbody>
-        </table>
-"""
-        else:
-            html += '        <p style="color: #27ae60;">✓ No exact duplicates found!</p>\n'
+        <div id="exact-content" class="tab-content active">
+            <h2>🎯 Exact Duplicates</h2>
+            <p>Tests with identical code coverage that can be safely removed.</p>
+            <div id="exact-table"></div>
+            <div id="exact-pagination" class="pagination"></div>
+        </div>
 
-        html += f"""
-        <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
-        <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
-"""
+        <div id="similar-content" class="tab-content">
+            <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
+            <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+            <div id="similar-table"></div>
+            <div id="similar-pagination" class="pagination"></div>
+        </div>
 
-        if similar:
-            html += """
-        <table>
-            <thead>
-                <tr>
-                    <th>Test 1</th>
-                    <th>Test 2</th>
-                    <th>Similarity</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-            exact_count = len(exact_dups)
-            for idx, (test1, test2, similarity) in enumerate(similar[:20]):
-                coverage_idx = exact_count + idx
-                html += f"""                <tr class="clickable-row" onclick="showComparison({coverage_idx})">
-                    <td><span class="test-name">{test1}</span></td>
-                    <td><span class="test-name">{test2}</span></td>
-                    <td><span class="badge badge-info">{similarity:.1%}</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-"""
-            html += """            </tbody>
-        </table>
-"""
-        else:
-            html += '        <p style="color: #27ae60;">✓ No similar tests found!</p>\n'
+        <div id="subset-content" class="tab-content">
+            <h2>📊 Subset Duplicates</h2>
+            <p>Tests that are subsets of other tests and may be redundant.</p>
+            <div id="subset-table"></div>
+            <div id="subset-pagination" class="pagination"></div>
+        </div>
 
-        html += """
-        <h2>📊 Subset Duplicates</h2>
-        <p>Tests that are subsets of other tests and may be redundant.</p>
-"""
+        <script>
+        // Data for pagination
+        const exactDupsData = {json.dumps([[list(group), i-1] for i, group in enumerate(exact_dups, 1)])};
+        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
+        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + len(similar) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
+        
+        const itemsPerPage = 20;
+        let currentPages = {{ exact: 1, similar: 1, subset: 1 }};
+        
+        function switchTab(tabName) {{
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Show selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-content').classList.add('active');
+        }}
+        
+        function renderExactDuplicates(page) {{
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = exactDupsData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {{
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No exact duplicates found!</p>';
+            }} else {{
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Tests</th>
+                            <th>Count</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([group, coverageIdx], idx) => {{
+                    const groupNum = start + idx + 1;
+                    const testList = group.map(test => `<span class="test-name">${{test}}</span>`).join('<br>');
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
+                            <td><strong>Group ${{groupNum}}</strong></td>
+                            <td>${{testList}}</td>
+                            <td><span class="badge badge-danger">${{group.length}} tests</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                }});
+                
+                html += '</tbody></table>';
+            }}
+            
+            document.getElementById('exact-table').innerHTML = html;
+            renderPagination('exact', exactDupsData.length, page);
+            formatTestNames();
+        }}
+        
+        function renderSimilarTests(page) {{
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = similarData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {{
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No similar tests found!</p>';
+            }} else {{
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test 1</th>
+                            <th>Test 2</th>
+                            <th>Similarity</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([test1, test2, similarity, coverageIdx]) => {{
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
+                            <td><span class="test-name">${{test1}}</span></td>
+                            <td><span class="test-name">${{test2}}</span></td>
+                            <td><span class="badge badge-info">${{(similarity * 100).toFixed(1)}}%</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                }});
+                
+                html += '</tbody></table>';
+            }}
+            
+            document.getElementById('similar-table').innerHTML = html;
+            renderPagination('similar', similarData.length, page);
+            formatTestNames();
+        }}
+        
+        function renderSubsetDuplicates(page) {{
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = subsetData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {{
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No subset duplicates found!</p>';
+            }} else {{
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subset Test</th>
+                            <th>Superset Test</th>
+                            <th>Coverage Ratio</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([subsetTest, supersetTest, ratio, coverageIdx]) => {{
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
+                            <td><span class="test-name">${{subsetTest}}</span></td>
+                            <td><span class="test-name">${{supersetTest}}</span></td>
+                            <td><span class="badge badge-warning">${{(ratio * 100).toFixed(1)}}%</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                }});
+                
+                html += '</tbody></table>';
+            }}
+            
+            document.getElementById('subset-table').innerHTML = html;
+            renderPagination('subset', subsetData.length, page);
+            formatTestNames();
+        }}
+        
+        function renderPagination(type, totalItems, currentPage) {{
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            
+            if (totalPages <= 1) {{
+                document.getElementById(type + '-pagination').innerHTML = '';
+                return;
+            }}
+            
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(currentPage * itemsPerPage, totalItems);
+            
+            let html = `
+                <button class="page-btn" onclick="changePage('${{type}}', ${{currentPage - 1}})" 
+                    ${{currentPage === 1 ? 'disabled' : ''}}>← Previous</button>
+                <span class="page-info">${{start}}-${{end}} of ${{totalItems}} | Page ${{currentPage}}/${{totalPages}}</span>
+                <button class="page-btn" onclick="changePage('${{type}}', ${{currentPage + 1}})" 
+                    ${{currentPage === totalPages ? 'disabled' : ''}}>Next →</button>`;
+            
+            document.getElementById(type + '-pagination').innerHTML = html;
+        }}
+        
+        function changePage(type, newPage) {{
+            currentPages[type] = newPage;
+            
+            if (type === 'exact') {{
+                renderExactDuplicates(newPage);
+            }} else if (type === 'similar') {{
+                renderSimilarTests(newPage);
+            }} else if (type === 'subset') {{
+                renderSubsetDuplicates(newPage);
+            }}
+            
+            // Scroll to top of table
+            document.getElementById(type + '-content').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+        
+        function formatTestNames() {{
+            const testNames = document.querySelectorAll('.test-name');
+            testNames.forEach(el => {{
+                const originalText = el.textContent;
+                if (originalText.includes('::')) {{
+                    el.innerHTML = formatTestName(originalText);
+                }}
+            }});
+        }}
+        
+        // Initial render
+        renderExactDuplicates(1);
+        renderSimilarTests(1);
+        renderSubsetDuplicates(1);
+        </script>
 
-        if subset_dups:
-            html += """
-        <table>
-            <thead>
-                <tr>
-                    <th>Subset Test</th>
-                    <th>Superset Test</th>
-                    <th>Coverage Ratio</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
 """
-            exact_count = len(exact_dups)
-            similar_count = len(similar[:20])
-            for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20]):
-                coverage_idx = exact_count + similar_count + i
-                html += f"""                <tr class="clickable-row" onclick="showComparison({coverage_idx})">
-                    <td><span class="test-name">{subset_test}</span></td>
-                    <td><span class="test-name">{superset_test}</span></td>
-                    <td><span class="badge badge-warning">{ratio:.1%}</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-"""
-            html += """            </tbody>
-        </table>
-"""
-        else:
-            html += '        <p style="color: #27ae60;">✓ No subset duplicates found!</p>\n'
-
+        
         # Add modal and JavaScript for split-screen view
         test_coverage_map = {test.test_name: test.covered_lines for test in self.finder.tests}
         

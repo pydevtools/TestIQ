@@ -348,12 +348,94 @@
             font-weight: 600;
             transition: width 0.3s ease;
         }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0 20px 0;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+            position: relative;
+            bottom: -2px;
+        }
+        .tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .page-btn {
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .page-btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .page-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-info {
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🧪 TestIQ Analysis Report</h1>
-        <div class="timestamp">Generated on 2026-01-13 16:23:26</div>
+        <div class="timestamp">Generated on 2026-01-13 16:26:06</div>
         
         <div class="stats">
             <div class="stat-card">
@@ -380,137 +462,223 @@
             </div>
         </div>
 
-        <h2>🎯 Exact Duplicates</h2>
-        <p>Tests with identical code coverage that can be safely removed.</p>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('exact')">🎯 Exact Duplicates (1)</button>
+            <button class="tab" onclick="switchTab('similar')">🔍 Similar Tests (3)</button>
+            <button class="tab" onclick="switchTab('subset')">📊 Subset Duplicates (10)</button>
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Group</th>
-                    <th>Tests</th>
-                    <th>Count</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="clickable-row" onclick="showComparison(0)">
-                    <td><strong>Group 1</strong></td>
-                    <td><span class="test-name">test_user_login_basic</span><br><span class="test-name">test_user_login_with_password</span></td>
-                    <td><span class="badge badge-danger">2 tests</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="exact-content" class="tab-content active">
+            <h2>🎯 Exact Duplicates</h2>
+            <p>Tests with identical code coverage that can be safely removed.</p>
+            <div id="exact-table"></div>
+            <div id="exact-pagination" class="pagination"></div>
+        </div>
 
-        <h2>🔍 Similar Tests (≥70% overlap)</h2>
-        <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+        <div id="similar-content" class="tab-content">
+            <h2>🔍 Similar Tests (≥70% overlap)</h2>
+            <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+            <div id="similar-table"></div>
+            <div id="similar-pagination" class="pagination"></div>
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Test 1</th>
-                    <th>Test 2</th>
-                    <th>Similarity</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="clickable-row" onclick="showComparison(1)">
-                    <td><span class="test-name">test_user_login_basic</span></td>
-                    <td><span class="test-name">test_admin_login</span></td>
-                    <td><span class="badge badge-info">76.9%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(2)">
-                    <td><span class="test-name">test_user_login_with_password</span></td>
-                    <td><span class="test-name">test_admin_login</span></td>
-                    <td><span class="badge badge-info">76.9%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(3)">
-                    <td><span class="test-name">test_logout_user</span></td>
-                    <td><span class="test-name">test_logout_admin</span></td>
-                    <td><span class="badge badge-info">70.0%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="subset-content" class="tab-content">
+            <h2>📊 Subset Duplicates</h2>
+            <p>Tests that are subsets of other tests and may be redundant.</p>
+            <div id="subset-table"></div>
+            <div id="subset-pagination" class="pagination"></div>
+        </div>
 
-        <h2>📊 Subset Duplicates</h2>
-        <p>Tests that are subsets of other tests and may be redundant.</p>
+        <script>
+        // Data for pagination
+        const exactDupsData = [[["test_user_login_basic", "test_user_login_with_password"], 0]];
+        const similarData = [["test_user_login_basic", "test_admin_login", 0.7692307692307693, 1], ["test_user_login_with_password", "test_admin_login", 0.7692307692307693, 2], ["test_logout_user", "test_logout_admin", 0.7, 3]];
+        const subsetData = [["test_user_login_basic", "test_admin_login", 0.7692307692307693, 4], ["test_user_login_with_password", "test_admin_login", 0.7692307692307693, 5], ["test_logout_user", "test_logout_admin", 0.7, 6], ["test_user_profile_view", "test_user_profile_edit", 0.6153846153846154, 7], ["test_user_login_basic", "test_user_login_complete", 0.5555555555555556, 8], ["test_user_login_with_password", "test_user_login_complete", 0.5555555555555556, 9], ["test_user_login_minimal", "test_user_login_basic", 0.3, 10], ["test_user_login_minimal", "test_user_login_with_password", 0.3, 11], ["test_user_login_minimal", "test_admin_login", 0.23076923076923078, 12], ["test_user_login_minimal", "test_user_login_complete", 0.16666666666666666, 13]];
+        
+        const itemsPerPage = 20;
+        let currentPages = { exact: 1, similar: 1, subset: 1 };
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Show selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-content').classList.add('active');
+        }
+        
+        function renderExactDuplicates(page) {
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = exactDupsData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No exact duplicates found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Tests</th>
+                            <th>Count</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([group, coverageIdx], idx) => {
+                    const groupNum = start + idx + 1;
+                    const testList = group.map(test => `<span class="test-name">${test}</span>`).join('<br>');
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><strong>Group ${groupNum}</strong></td>
+                            <td>${testList}</td>
+                            <td><span class="badge badge-danger">${group.length} tests</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('exact-table').innerHTML = html;
+            renderPagination('exact', exactDupsData.length, page);
+            formatTestNames();
+        }
+        
+        function renderSimilarTests(page) {
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = similarData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No similar tests found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test 1</th>
+                            <th>Test 2</th>
+                            <th>Similarity</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([test1, test2, similarity, coverageIdx]) => {
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><span class="test-name">${test1}</span></td>
+                            <td><span class="test-name">${test2}</span></td>
+                            <td><span class="badge badge-info">${(similarity * 100).toFixed(1)}%</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('similar-table').innerHTML = html;
+            renderPagination('similar', similarData.length, page);
+            formatTestNames();
+        }
+        
+        function renderSubsetDuplicates(page) {
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = subsetData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No subset duplicates found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subset Test</th>
+                            <th>Superset Test</th>
+                            <th>Coverage Ratio</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([subsetTest, supersetTest, ratio, coverageIdx]) => {
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><span class="test-name">${subsetTest}</span></td>
+                            <td><span class="test-name">${supersetTest}</span></td>
+                            <td><span class="badge badge-warning">${(ratio * 100).toFixed(1)}%</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('subset-table').innerHTML = html;
+            renderPagination('subset', subsetData.length, page);
+            formatTestNames();
+        }
+        
+        function renderPagination(type, totalItems, currentPage) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            
+            if (totalPages <= 1) {
+                document.getElementById(type + '-pagination').innerHTML = '';
+                return;
+            }
+            
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(currentPage * itemsPerPage, totalItems);
+            
+            let html = `
+                <button class="page-btn" onclick="changePage('${type}', ${currentPage - 1})" 
+                    ${currentPage === 1 ? 'disabled' : ''}>← Previous</button>
+                <span class="page-info">${start}-${end} of ${totalItems} | Page ${currentPage}/${totalPages}</span>
+                <button class="page-btn" onclick="changePage('${type}', ${currentPage + 1})" 
+                    ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
+            
+            document.getElementById(type + '-pagination').innerHTML = html;
+        }
+        
+        function changePage(type, newPage) {
+            currentPages[type] = newPage;
+            
+            if (type === 'exact') {
+                renderExactDuplicates(newPage);
+            } else if (type === 'similar') {
+                renderSimilarTests(newPage);
+            } else if (type === 'subset') {
+                renderSubsetDuplicates(newPage);
+            }
+            
+            // Scroll to top of table
+            document.getElementById(type + '-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function formatTestNames() {
+            const testNames = document.querySelectorAll('.test-name');
+            testNames.forEach(el => {
+                const originalText = el.textContent;
+                if (originalText.includes('::')) {
+                    el.innerHTML = formatTestName(originalText);
+                }
+            });
+        }
+        
+        // Initial render
+        renderExactDuplicates(1);
+        renderSimilarTests(1);
+        renderSubsetDuplicates(1);
+        </script>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Subset Test</th>
-                    <th>Superset Test</th>
-                    <th>Coverage Ratio</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="clickable-row" onclick="showComparison(4)">
-                    <td><span class="test-name">test_user_login_basic</span></td>
-                    <td><span class="test-name">test_admin_login</span></td>
-                    <td><span class="badge badge-warning">76.9%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(5)">
-                    <td><span class="test-name">test_user_login_with_password</span></td>
-                    <td><span class="test-name">test_admin_login</span></td>
-                    <td><span class="badge badge-warning">76.9%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(6)">
-                    <td><span class="test-name">test_logout_user</span></td>
-                    <td><span class="test-name">test_logout_admin</span></td>
-                    <td><span class="badge badge-warning">70.0%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(7)">
-                    <td><span class="test-name">test_user_profile_view</span></td>
-                    <td><span class="test-name">test_user_profile_edit</span></td>
-                    <td><span class="badge badge-warning">61.5%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(8)">
-                    <td><span class="test-name">test_user_login_basic</span></td>
-                    <td><span class="test-name">test_user_login_complete</span></td>
-                    <td><span class="badge badge-warning">55.6%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(9)">
-                    <td><span class="test-name">test_user_login_with_password</span></td>
-                    <td><span class="test-name">test_user_login_complete</span></td>
-                    <td><span class="badge badge-warning">55.6%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(10)">
-                    <td><span class="test-name">test_user_login_minimal</span></td>
-                    <td><span class="test-name">test_user_login_basic</span></td>
-                    <td><span class="badge badge-warning">30.0%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(11)">
-                    <td><span class="test-name">test_user_login_minimal</span></td>
-                    <td><span class="test-name">test_user_login_with_password</span></td>
-                    <td><span class="badge badge-warning">30.0%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(12)">
-                    <td><span class="test-name">test_user_login_minimal</span></td>
-                    <td><span class="test-name">test_admin_login</span></td>
-                    <td><span class="badge badge-warning">23.1%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-                <tr class="clickable-row" onclick="showComparison(13)">
-                    <td><span class="test-name">test_user_login_minimal</span></td>
-                    <td><span class="test-name">test_user_login_complete</span></td>
-                    <td><span class="badge badge-warning">16.7%</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-            </tbody>
-        </table>
 
         <!-- Modal for split-screen coverage view -->
         <div id="comparisonModal" class="modal">
@@ -554,7 +722,7 @@
         </div>
 
         <script>
-        const coverageData = [{"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 1.0, "subsetName": "test_user_login_basic", "supersetName": "test_user_login_with_password"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_basic", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_with_password", "supersetName": "test_admin_login"}, {"subset": {"auth/logout.py": [1, 2, 3, 4, 5], "models/session.py": [20, 21]}, "superset": {"auth/logout.py": [1, 2, 3, 4, 5, 6, 7], "models/session.py": [20, 21], "models/admin.py": [52]}, "ratio": 0.7, "subsetName": "test_logout_user", "supersetName": "test_logout_admin"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_basic", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_with_password", "supersetName": "test_admin_login"}, {"subset": {"auth/logout.py": [1, 2, 3, 4, 5], "models/session.py": [20, 21]}, "superset": {"auth/logout.py": [1, 2, 3, 4, 5, 6, 7], "models/session.py": [20, 21], "models/admin.py": [52]}, "ratio": 0.7, "subsetName": "test_logout_user", "supersetName": "test_logout_admin"}, {"subset": {"views/profile.py": [10, 11, 12, 13, 14], "models/user.py": [5, 6, 7]}, "superset": {"views/profile.py": [10, 11, 12, 13, 14, 20, 21, 22], "models/user.py": [5, 6, 7, 8, 9]}, "ratio": 0.6153846153846154, "subsetName": "test_user_profile_view", "supersetName": "test_user_profile_edit"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "database/connection.py": [100, 101, 102], "models/user.py": [5, 6, 7, 8, 9, 10]}, "ratio": 0.5555555555555556, "subsetName": "test_user_login_basic", "supersetName": "test_user_login_complete"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "database/connection.py": [100, 101, 102], "models/user.py": [5, 6, 7, 8, 9, 10]}, "ratio": 0.5555555555555556, "subsetName": "test_user_login_with_password", "supersetName": "test_user_login_complete"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 0.3, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_basic"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 0.3, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_with_password"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.23076923076923078, "subsetName": "test_user_login_minimal", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "database/connection.py": [100, 101, 102], "models/user.py": [5, 6, 7, 8, 9, 10]}, "ratio": 0.16666666666666666, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_complete"}];
+        const coverageData = [{"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 1.0, "subsetName": "test_user_login_basic", "supersetName": "test_user_login_with_password"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_basic", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_with_password", "supersetName": "test_admin_login"}, {"subset": {"auth/logout.py": [1, 2, 3, 4, 5], "models/session.py": [20, 21]}, "superset": {"auth/logout.py": [1, 2, 3, 4, 5, 6, 7], "models/session.py": [20, 21], "models/admin.py": [52]}, "ratio": 0.7, "subsetName": "test_logout_user", "supersetName": "test_logout_admin"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_basic", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.7692307692307693, "subsetName": "test_user_login_with_password", "supersetName": "test_admin_login"}, {"subset": {"auth/logout.py": [1, 2, 3, 4, 5], "models/session.py": [20, 21]}, "superset": {"auth/logout.py": [1, 2, 3, 4, 5, 6, 7], "models/session.py": [20, 21], "models/admin.py": [52]}, "ratio": 0.7, "subsetName": "test_logout_user", "supersetName": "test_logout_admin"}, {"subset": {"views/profile.py": [10, 11, 12, 13, 14], "models/user.py": [5, 6, 7]}, "superset": {"views/profile.py": [10, 11, 12, 13, 14, 20, 21, 22], "models/user.py": [5, 6, 7, 8, 9]}, "ratio": 0.6153846153846154, "subsetName": "test_user_profile_view", "supersetName": "test_user_profile_edit"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "models/user.py": [5, 6, 7, 8, 9, 10], "database/connection.py": [100, 101, 102]}, "ratio": 0.5555555555555556, "subsetName": "test_user_login_basic", "supersetName": "test_user_login_complete"}, {"subset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "models/user.py": [5, 6, 7, 8, 9, 10], "database/connection.py": [100, 101, 102]}, "ratio": 0.5555555555555556, "subsetName": "test_user_login_with_password", "supersetName": "test_user_login_complete"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 0.3, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_basic"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25], "models/user.py": [5, 6, 7, 8]}, "ratio": 0.3, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_with_password"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 45], "models/user.py": [5, 6, 7, 8], "models/admin.py": [50, 51]}, "ratio": 0.23076923076923078, "subsetName": "test_user_login_minimal", "supersetName": "test_admin_login"}, {"subset": {"auth/login.py": [10, 11, 12]}, "superset": {"auth/login.py": [10, 11, 12, 15, 20, 25, 30, 35, 40], "models/user.py": [5, 6, 7, 8, 9, 10], "database/connection.py": [100, 101, 102]}, "ratio": 0.16666666666666666, "subsetName": "test_user_login_minimal", "supersetName": "test_user_login_complete"}];
         const sourceCode = {};
         let currentData = null;
         let syncEnabled = true;
