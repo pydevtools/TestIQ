@@ -37,6 +37,9 @@ Issues = "https://github.com/testiq-dev/testiq/issues"
 [project.scripts]
 testiq = "testiq.cli:main"
 
+[project.entry-points.pytest11]
+testiq = "testiq.pytest_plugin"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",

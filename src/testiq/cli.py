@@ -13,6 +13,7 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from testiq import __version__
 from testiq.analysis import QualityAnalyzer, RecommendationEngine
@@ -314,9 +315,9 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
     exact_dups = finder.find_exact_duplicates()
     if exact_dups:
         table = Table(title="🎯 Exact Duplicates (Identical Coverage)", show_header=True)
-        table.add_column("Group", style="cyan", width=8)
-        table.add_column("Tests", style="yellow")
-        table.add_column("Action", style="green")
+        table.add_column("Group", style="cyan", width=10)
+        table.add_column("Tests", style="yellow", no_wrap=False, overflow="fold")
+        table.add_column("Action", style="green", width=20)
 
         for i, group in enumerate(exact_dups, 1):
             tests_str = "\n".join(group)
@@ -330,9 +331,9 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
     subsets = finder.find_subset_duplicates()
     if subsets:
         table = Table(title="📊 Subset Duplicates", show_header=True)
-        table.add_column("Subset Test", style="yellow")
-        table.add_column("Superset Test", style="cyan")
-        table.add_column("Coverage Ratio", style="magenta")
+        table.add_column("Subset Test", style="yellow", no_wrap=False, overflow="fold")
+        table.add_column("Superset Test", style="cyan", no_wrap=False, overflow="fold")
+        table.add_column("Coverage Ratio", style="magenta", width=15)
 
         for subset_test, superset_test, ratio in subsets[:10]:
             table.add_row(subset_test, superset_test, f"{ratio:.1%}")
@@ -344,9 +345,9 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
     similar = finder.find_similar_coverage(threshold)
     if similar:
         table = Table(title=f"🔍 Similar Tests (≥{threshold:.0%} overlap)", show_header=True)
-        table.add_column("Test 1", style="yellow")
-        table.add_column("Test 2", style="cyan")
-        table.add_column("Similarity", style="magenta")
+        table.add_column("Test 1", style="yellow", no_wrap=False, overflow="fold")
+        table.add_column("Test 2", style="cyan", no_wrap=False, overflow="fold")
+        table.add_column("Similarity", style="magenta", width=12)
 
         for test1, test2, similarity in similar[:10]:
             table.add_row(test1, test2, f"{similarity:.1%}")

@@ -33,9 +33,58 @@ pip install testiq
 ### Quick Start
 
 **See it in action immediately:**
+
 ```bash
+# Run demo with sample data
 testiq demo
 ```
+
+**Generate per-test coverage data:**
+
+TestIQ needs **per-test** coverage (which lines each test executes). Use our pytest plugin:
+
+```bash
+# Run tests with TestIQ plugin (easiest method)
+pytest --testiq-output=testiq_coverage.json
+
+# Then analyze with TestIQ
+testiq analyze testiq_coverage.json --output=report.html
+```
+
+**Alternative methods:**
+
+```bash
+# Method 2: Use pytest coverage contexts
+pytest --cov --cov-context=test
+python -m testiq.coverage_converter coverage.json --with-contexts
+
+# Method 3: Convert standard pytest coverage (limited functionality)
+pytest --cov=your_package --cov-report=json
+python -m testiq.coverage_converter coverage.json
+```
+
+**Manual sample data:**
+
+```bash
+# Create sample coverage data (for testing)
+cat > testiq_coverage.json << 'EOF'
+{
+  "test_login_success": {
+    "auth.py": [10, 11, 12, 15, 20, 25],
+    "user.py": [5, 6, 7, 8]
+  },
+  "test_login_failure": {
+    "auth.py": [10, 11, 12, 15, 16],
+    "user.py": [5, 6]
+  }
+}
+EOF
+
+# Analyze the sample data
+testiq analyze testiq_coverage.json
+```
+
+> **📖 See [Pytest Integration Guide](docs/pytest-integration.md) for complete setup instructions**
 
 ### CLI Usage
 
@@ -151,6 +200,7 @@ print(f"Quality Score: {score.overall_score}/100 (Grade: {score.grade})")
 | Document | Description |
 |----------|-------------|
 | **[Installation Guide](docs/installation.md)** | How to install TestIQ |
+| **[Pytest Integration](docs/pytest-integration.md)** | **Generate per-test coverage data** |
 | **[User Guide](docs/guide.md)** | Complete usage guide with examples |
 | **[CLI Reference](docs/cli-reference.md)** | Command-line interface documentation |
 | **[API Reference](docs/api.md)** | Python API documentation |

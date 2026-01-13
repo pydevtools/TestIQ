@@ -43,6 +43,23 @@ python manual_test.py
 
 **Generated outputs:** `reports/test_report.html`, `reports/test_report.csv`, `reports/test_report.md`
 
+### Run Pytest Plugin Example ✨ NEW
+
+Demonstrates using the TestIQ pytest plugin to generate per-test coverage data.
+
+```bash
+# From project root
+python examples/python/pytest_plugin_example.py
+```
+
+**What it does:**
+- ✅ Runs pytest with `--testiq-output` flag
+- ✅ Generates per-test coverage in TestIQ format
+- ✅ Analyzes coverage to find duplicates
+- ✅ Creates HTML reports with results
+
+**Key insight:** Shows the proper way to generate TestIQ-compatible coverage data from pytest!
+
 ### Run Bash CLI Example
 
 Quick test script that runs all main CLI commands.

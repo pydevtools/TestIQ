@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from testiq.analyzer import CoverageDuplicateFinder
 from testiq.logging_config import get_logger
+from testiq.source_reader import SourceCodeReader
 
 logger = get_logger(__name__)
 
@@ -40,6 +41,8 @@ class HTMLReportGenerator:
 
         exact_dups = self.finder.find_exact_duplicates()
         subset_dups = self.finder.find_subset_duplicates()
+        # Sort subset duplicates by coverage ratio in descending order
+        subset_dups = sorted(subset_dups, key=lambda x: x[2], reverse=True)
         similar = self.finder.find_similar_coverage(threshold)
 
         html = self._generate_html(title, exact_dups, subset_dups, similar, threshold)
@@ -63,6 +66,14 @@ class HTMLReportGenerator:
         duplicate_percentage = (
             (duplicate_count / total_tests * 100) if total_tests > 0 else 0
         )
+        
+        # Collect and read source files for the split-screen view
+        source_reader = SourceCodeReader()
+        all_files = set()
+        for test in self.finder.tests:
+            for filename, _ in test.covered_lines:
+                all_files.add(filename)
+        source_code_map = source_reader.read_multiple(list(all_files))
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -84,7 +95,7 @@ class HTMLReportGenerator:
             padding: 20px;
         }}
         .container {{
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 8px;
@@ -155,6 +166,9 @@ class HTMLReportGenerator:
         td {{
             padding: 12px;
             border-bottom: 1px solid #ecf0f1;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 400px;
         }}
         tr:hover {{
             background: #f8f9fa;
@@ -191,6 +205,17 @@ class HTMLReportGenerator:
             background: #ecf0f1;
             padding: 2px 6px;
             border-radius: 3px;
+            display: inline-block;
+            max-width: 100%;
+            line-height: 1.6;
+        }}
+        .test-name .test-part {{
+            display: inline;
+        }}
+        .test-name .test-separator {{
+            color: #3498db;
+            font-weight: bold;
+            margin: 0 2px;
         }}
         .action {{
             color: #27ae60;
@@ -203,6 +228,185 @@ class HTMLReportGenerator:
             text-align: center;
             color: #7f8c8d;
             font-size: 0.9em;
+        }}
+        .clickable-row {{
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }}
+        .clickable-row:hover {{
+            background: #e8f4f8 !important;
+            transform: translateX(3px);
+        }}
+        .modal {{
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }}
+        .modal-content {{
+            background-color: white;
+            margin: 10px auto;
+            padding: 0;
+            width: calc(100% - 20px);
+            height: calc(100vh - 20px);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }}
+        .modal-header {{
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }}
+        .close {{
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: transform 0.2s;
+        }}
+        .close:hover {{
+            transform: scale(1.2);
+        }}
+        .split-view {{
+            display: flex;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+        }}
+        .split-view.independent {{
+            overflow: hidden;
+        }}
+        .file-panel {{
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #ecf0f1;
+            min-width: 0;
+        }}
+        .file-panel.independent {{
+            overflow-y: auto;
+        }}
+        .file-panel:last-child {{
+            border-right: none;
+        }}
+        .panel-header {{
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #ecf0f1;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            flex-shrink: 0;
+        }}
+        .file-content {{
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            background: #fafafa;
+        }}
+        .code-line {{
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin: 1px 0;
+            white-space: pre;
+        }}
+        .covered {{
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+            font-weight: 600;
+        }}
+        .not-covered {{
+            opacity: 0.6;
+        }}
+        .file-path {{
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }}
+        .coverage-info {{
+            background: #e8f4f8;
+            padding: 15px;
+            margin: 10px 20px;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }}
+        .filter-section {{
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }}
+        .filter-select {{
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            font-size: 0.85em;
+            background: rgba(255,255,255,0.95);
+            cursor: pointer;
+            min-width: 180px;
+            color: #2c3e50;
+        }}
+        .filter-select:hover {{
+            background: white;
+            border-color: white;
+        }}
+        .sync-toggle {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85em;
+            color: #2c3e50;
+        }}
+        .sync-toggle:hover {{
+            background: white;
+            border-color: white;
+            background: #f0f0ff;
+        }}
+        .sync-toggle.active {{
+            background: #667eea;
+            color: white;
+        }}
+        .sync-checkbox {{
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }}
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
         }}
         .progress-bar {{
             height: 30px;
@@ -231,7 +435,7 @@ class HTMLReportGenerator:
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value">{total_tests}</div>
-                <div class="stat-label">Total Tests</div>
+                <div class="stat-label">Total Test Methods</div>
             </div>
             <div class="stat-card success">
                 <div class="stat-value">{duplicate_count}</div>
@@ -258,24 +462,36 @@ class HTMLReportGenerator:
 """
 
         if exact_dups:
-            for i, group in enumerate(exact_dups, 1):
-                html += f"""
-        <div class="test-group">
-            <strong>Group {i}</strong> <span class="badge badge-danger">{len(group)} tests</span>
-            <ul style="margin-top: 10px; margin-left: 20px;">
+            html += """
+        <table>
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th>Tests</th>
+                    <th>Count</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
 """
-                for test in group:
-                    html += f'                <li><span class="test-name">{test}</span></li>\n'
-                html += f"""            </ul>
-            <div class="action">→ Remove {len(group) - 1} duplicate(s)</div>
-        </div>
+            for i, group in enumerate(exact_dups, 1):
+                test_list = '<br>'.join([f'<span class="test-name">{test}</span>' for test in group])
+                html += f"""                <tr class="clickable-row" onclick="showComparison({i - 1})">
+                    <td><strong>Group {i}</strong></td>
+                    <td>{test_list}</td>
+                    <td><span class="badge badge-danger">{len(group)} tests</span></td>
+                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                </tr>
+"""
+            html += """            </tbody>
+        </table>
 """
         else:
             html += '        <p style="color: #27ae60;">✓ No exact duplicates found!</p>\n'
 
-        html += """
-        <h2>📊 Subset Duplicates</h2>
-        <p>Tests that are subsets of other tests and may be redundant.</p>
+        html += f"""
+        <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
+        <p>Test pairs with significant code coverage overlap.</p>
 """
 
         if subset_dups:
@@ -286,15 +502,17 @@ class HTMLReportGenerator:
                     <th>Subset Test</th>
                     <th>Superset Test</th>
                     <th>Coverage Ratio</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
 """
-            for subset_test, superset_test, ratio in subset_dups[:20]:
-                html += f"""                <tr>
+            for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20]):
+                html += f"""                <tr class="clickable-row" onclick="showComparison({i})">
                     <td><span class="test-name">{subset_test}</span></td>
                     <td><span class="test-name">{superset_test}</span></td>
                     <td><span class="badge badge-warning">{ratio:.1%}</span></td>
+                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
                 </tr>
 """
             html += """            </tbody>
@@ -316,15 +534,19 @@ class HTMLReportGenerator:
                     <th>Test 1</th>
                     <th>Test 2</th>
                     <th>Similarity</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
 """
-            for test1, test2, similarity in similar[:20]:
-                html += f"""                <tr>
+            exact_count = len(exact_dups)
+            for idx, (test1, test2, similarity) in enumerate(similar[:20]):
+                coverage_idx = exact_count + idx
+                html += f"""                <tr class="clickable-row" onclick="showComparison({coverage_idx})">
                     <td><span class="test-name">{test1}</span></td>
                     <td><span class="test-name">{test2}</span></td>
                     <td><span class="badge badge-info">{similarity:.1%}</span></td>
+                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
                 </tr>
 """
             html += """            </tbody>
@@ -333,10 +555,533 @@ class HTMLReportGenerator:
         else:
             html += '        <p style="color: #27ae60;">✓ No similar tests found!</p>\n'
 
+        html += """
+        <h2>📊 Subset Duplicates</h2>
+        <p>Tests that are subsets of other tests and may be redundant.</p>
+"""
+
+        if subset_dups:
+            html += """
+        <table>
+            <thead>
+                <tr>
+                    <th>Subset Test</th>
+                    <th>Superset Test</th>
+                    <th>Coverage Ratio</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+            exact_count = len(exact_dups)
+            similar_count = len(similar[:20])
+            for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20]):
+                coverage_idx = exact_count + similar_count + i
+                html += f"""                <tr class="clickable-row" onclick="showComparison({coverage_idx})">
+                    <td><span class="test-name">{subset_test}</span></td>
+                    <td><span class="test-name">{superset_test}</span></td>
+                    <td><span class="badge badge-warning">{ratio:.1%}</span></td>
+                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
+                </tr>
+"""
+            html += """            </tbody>
+        </table>
+"""
+        else:
+            html += '        <p style="color: #27ae60;">✓ No subset duplicates found!</p>\n'
+
+        # Add modal and JavaScript for split-screen view
+        test_coverage_map = {test.test_name: test.covered_lines for test in self.finder.tests}
+        
+        coverage_data = []
+        
+        # Add exact duplicates data (first in order)
+        for group in exact_dups:
+            if len(group) < 2:
+                continue
+            # Compare first test with second test in group
+            test1 = group[0]
+            test2 = group[1]
+            test1_cov = test_coverage_map.get(test1, set())
+            test2_cov = test_coverage_map.get(test2, set())
+            
+            # Convert to dict format
+            test1_dict = {}
+            for filename, line in test1_cov:
+                if filename not in test1_dict:
+                    test1_dict[filename] = []
+                test1_dict[filename].append(line)
+            
+            test2_dict = {}
+            for filename, line in test2_cov:
+                if filename not in test2_dict:
+                    test2_dict[filename] = []
+                test2_dict[filename].append(line)
+            
+            # Sort line numbers
+            for lines in test1_dict.values():
+                lines.sort()
+            for lines in test2_dict.values():
+                lines.sort()
+            
+            coverage_data.append({
+                "subset": test1_dict,
+                "superset": test2_dict,
+                "ratio": 1.0,
+                "subsetName": test1,
+                "supersetName": test2
+            })
+        
+        # Add similar tests data (second in order)
+        for test1, test2, similarity in similar[:20]:
+            test1_cov = test_coverage_map.get(test1, set())
+            test2_cov = test_coverage_map.get(test2, set())
+            
+            # Convert to dict format
+            test1_dict = {}
+            for filename, line in test1_cov:
+                if filename not in test1_dict:
+                    test1_dict[filename] = []
+                test1_dict[filename].append(line)
+            
+            test2_dict = {}
+            for filename, line in test2_cov:
+                if filename not in test2_dict:
+                    test2_dict[filename] = []
+                test2_dict[filename].append(line)
+            
+            # Sort line numbers
+            for lines in test1_dict.values():
+                lines.sort()
+            for lines in test2_dict.values():
+                lines.sort()
+            
+            coverage_data.append({
+                "subset": test1_dict,
+                "superset": test2_dict,
+                "ratio": similarity,
+                "subsetName": test1,
+                "supersetName": test2
+            })
+        
+        # Add subset duplicates data (third in order)
+        for subset_test, superset_test, ratio in subset_dups[:20]:
+            subset_cov = test_coverage_map.get(subset_test, set())
+            superset_cov = test_coverage_map.get(superset_test, set())
+            
+            # Convert to dict format
+            subset_dict = {}
+            for filename, line in subset_cov:
+                if filename not in subset_dict:
+                    subset_dict[filename] = []
+                subset_dict[filename].append(line)
+            
+            superset_dict = {}
+            for filename, line in superset_cov:
+                if filename not in superset_dict:
+                    superset_dict[filename] = []
+                superset_dict[filename].append(line)
+            
+            # Sort line numbers
+            for lines in subset_dict.values():
+                lines.sort()
+            for lines in superset_dict.values():
+                lines.sort()
+            
+            coverage_data.append({
+                "subset": subset_dict,
+                "superset": superset_dict,
+                "ratio": ratio,
+                "subsetName": subset_test,
+                "supersetName": superset_test
+            })
+
         html += f"""
+        <!-- Modal for split-screen coverage view -->
+        <div id="comparisonModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 style="margin: 0;">📊 Coverage Comparison</h2>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="filter-section">
+                            <label for="fileFilter" style="font-weight: 600; margin-right: 8px;">📁</label>
+                            <select id="fileFilter" class="filter-select" onchange="applyFileFilter()">
+                                <option value="">All Files</option>
+                            </select>
+                        </div>
+                        <div class="sync-toggle" id="syncToggle" onclick="toggleSync()">
+                            <input type="checkbox" id="syncCheckbox" class="sync-checkbox" checked>
+                            <label for="syncCheckbox" style="cursor: pointer; user-select: none;">🔗 Sync Scroll</label>
+                        </div>
+                        <span class="close" onclick="closeModal()">&times;</span>
+                    </div>
+                </div>
+                <div class="coverage-info">
+                    <div>
+                        <strong>Subset Test:</strong> <span id="subsetName" class="test-name"></span>
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Superset Test:</strong> <span id="supersetName" class="test-name"></span>
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Coverage Ratio:</strong> <span id="coverageRatio" class="badge badge-warning"></span>
+                    </div>
+                </div>
+                <div class="split-view">
+                    <div class="file-panel">
+                        <div class="panel-header">📄 Subset Test Coverage</div>
+                        <div id="subsetContent" class="file-content"></div>
+                    </div>
+                    <div class="file-panel">
+                        <div class="panel-header">📄 Superset Test Coverage</div>
+                        <div id="supersetContent" class="file-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        const coverageData = {json.dumps(coverage_data)};
+        const sourceCode = {json.dumps(source_code_map)};
+        let currentData = null;
+        let syncEnabled = true;
+        let isScrolling = false;
+        
+        function formatTestName(testName) {{
+            // Split test name at :: for better readability
+            const parts = testName.split('::');
+            if (parts.length === 1) return testName;
+            
+            return parts.map((part, idx) => {{
+                if (idx === parts.length - 1) {{
+                    return '<span class="test-part">' + part + '</span>';
+                }}
+                return '<span class="test-part">' + part + '</span><span class="test-separator">::</span><wbr>';
+            }}).join('');
+        }}
+        
+        function showComparison(index) {{
+            const data = coverageData[index];
+            if (!data) return;
+            
+            currentData = data;
+            
+            document.getElementById('subsetName').innerHTML = formatTestName(data.subsetName);
+            document.getElementById('supersetName').innerHTML = formatTestName(data.supersetName);
+            document.getElementById('coverageRatio').textContent = (data.ratio * 100).toFixed(1) + '%';
+            
+            // Populate file filter
+            const allFiles = new Set([...Object.keys(data.subset), ...Object.keys(data.superset)]);
+            const fileFilter = document.getElementById('fileFilter');
+            fileFilter.innerHTML = '<option value="">All Files</option>';
+            Array.from(allFiles).sort().forEach(file => {{
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file;
+                fileFilter.appendChild(option);
+            }});
+            
+            renderBothPanels();
+            
+            document.getElementById('comparisonModal').style.display = 'block';
+            
+            // Scroll to top of the modal
+            const splitView = document.querySelector('.split-view');
+            if (splitView) {{
+                splitView.scrollTop = 0;
+            }}
+        }}
+        
+        function renderBothPanels() {{
+            const selectedFile = document.getElementById('fileFilter').value;
+            
+            // Get all unique files from both sides
+            const subsetFiles = Object.keys(currentData.subset).sort();
+            const supersetFiles = Object.keys(currentData.superset).sort();
+            const allFiles = [...new Set([...subsetFiles, ...supersetFiles])].sort();
+            
+            // Apply file filter
+            const filesToRender = selectedFile ? [selectedFile] : allFiles;
+            
+            let subsetHtml = '';
+            let supersetHtml = '';
+            
+            for (const file of filesToRender) {{
+                const subsetLines = currentData.subset[file] || [];
+                const supersetLines = currentData.superset[file] || [];
+                
+                // Get all unique line numbers from both sides
+                let allLineNums = [...new Set([...subsetLines, ...supersetLines])].sort((a, b) => a - b);
+                
+                if (allLineNums.length === 0) continue;
+                
+                const subsetLineSet = new Set(subsetLines);
+                const supersetLineSet = new Set(supersetLines);
+                const fileSource = sourceCode[file] || {{}};
+                
+                // Find and include method/class definitions for context
+                const minLine = Math.min(...allLineNums);
+                const maxLine = Math.max(...allLineNums);
+                const contextLines = new Set(allLineNums);
+                
+                // Scan backwards from each covered line to find def/class
+                for (const lineNum of allLineNums) {{
+                    for (let i = lineNum - 1; i >= Math.max(1, minLine - 20); i--) {{
+                        const line = fileSource[i] || '';
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('def ') || trimmed.startsWith('class ') || trimmed.startsWith('async def ')) {{
+                            contextLines.add(i);
+                            break;
+                        }}
+                        // Stop if we hit another definition or empty line followed by def
+                        if (trimmed === '' && i < lineNum - 5) break;
+                    }}
+                }}
+                
+                // Convert back to sorted array
+                allLineNums = Array.from(contextLines).sort((a, b) => a - b);
+                
+                // Add file headers
+                subsetHtml += '<div class=\"file-section\" style=\"margin-bottom: 30px;\">';
+                subsetHtml += '<div class=\"file-path\">📄 ' + escapeHtml(file) + '</div>';
+                
+                supersetHtml += '<div class=\"file-section\" style=\"margin-bottom: 30px;\">';
+                supersetHtml += '<div class=\"file-path\">📄 ' + escapeHtml(file) + '</div>';
+                
+                // Render each line with gap detection
+                let prevLineNum = null;
+                for (let idx = 0; idx < allLineNums.length; idx++) {{
+                    const lineNum = allLineNums[idx];
+                    const sourceLine = fileSource[lineNum] || '';
+                    const trimmed = sourceLine.trim();
+                    
+                    // Skip docstrings
+                    if (trimmed.startsWith('\"\"\"') || trimmed.startsWith("'''")) {{
+                        continue;
+                    }}
+                    
+                    // Handle gap between lines
+                    if (prevLineNum !== null && lineNum - prevLineNum > 1) {{
+                        const gap = lineNum - prevLineNum - 1;
+                        const gapStart = prevLineNum + 1;
+                        const gapEnd = lineNum - 1;
+                        
+                        if (gap > 3) {{
+                            // Show collapsible gap for >3 lines
+                            const gapId = 'gap_' + file.replace(/[^a-zA-Z0-9]/g, '_') + '_' + gapStart + '_' + gapEnd;
+                            const gapText = '⋮ (' + gap + ' line' + (gap > 1 ? 's' : '') + ') ⋮ Click to expand';
+                            
+                            subsetHtml += '<div class=\"code-line gap-line\" style=\"color: #667eea; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            subsetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
+                            subsetHtml += 'onclick=\"toggleGap(this, \\'subset\\')\" title=\"Click to view hidden lines\">';
+                            subsetHtml += '<strong>' + gapText + '</strong>';
+                            subsetHtml += '</div>';
+                            
+                            supersetHtml += '<div class=\"code-line gap-line\" style=\"color: #667eea; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            supersetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
+                            supersetHtml += 'onclick=\"toggleGap(this, \\'superset\\')\" title=\"Click to view hidden lines\">';
+                            supersetHtml += '<strong>' + gapText + '</strong>';
+                            supersetHtml += '</div>';
+                        }} else {{
+                            // Show lines if gap is 3 or less
+                            for (let gapLine = gapStart; gapLine <= gapEnd; gapLine++) {{
+                                const gapSource = fileSource[gapLine] || '';
+                                const gapLineNumStr = String(gapLine).padStart(4, ' ');
+                                
+                                subsetHtml += '<div class=\"code-line\" style=\"opacity: 0.4; background: #fafafa;\">';
+                                subsetHtml += '<span style=\"color: #bbb; margin-right: 10px;\">' + gapLineNumStr + '</span>';
+                                subsetHtml += '<span style=\"color: #aaa;\">' + escapeHtml(gapSource) + '</span>';
+                                subsetHtml += '</div>';
+                                
+                                supersetHtml += '<div class=\"code-line\" style=\"opacity: 0.4; background: #fafafa;\">';
+                                supersetHtml += '<span style=\"color: #bbb; margin-right: 10px;\">' + gapLineNumStr + '</span>';
+                                supersetHtml += '<span style=\"color: #aaa;\">' + escapeHtml(gapSource) + '</span>';
+                                supersetHtml += '</div>';
+                            }}
+                        }}
+                    }}
+                    
+                    prevLineNum = lineNum;
+                    const lineNumStr = String(lineNum).padStart(4, ' ');
+                    const isDefLine = trimmed.startsWith('def ') || trimmed.startsWith('class ') || trimmed.startsWith('async def ');
+                    
+                    // Render left side (subset)
+                    if (subsetLineSet.has(lineNum)) {{
+                        subsetHtml += '<div class=\"code-line covered\">';
+                        subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine) || '▌ Covered line';
+                        subsetHtml += '</div>';
+                    }} else if (isDefLine) {{
+                        // Show def/class lines as context
+                        subsetHtml += '<div class=\"code-line\" style=\"background: #e8f4f8; font-weight: 600;\">';
+                        subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine);
+                        subsetHtml += '</div>';
+                    }} else {{
+                        // Show blank line to maintain alignment
+                        subsetHtml += '<div class=\"code-line\" style=\"opacity: 0.3;\">';
+                        subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        subsetHtml += '<span style=\"color: #ccc;\">—</span>';
+                        subsetHtml += '</div>';
+                    }}
+                    
+                    // Render right side (superset)
+                    if (supersetLineSet.has(lineNum)) {{
+                        supersetHtml += '<div class=\"code-line covered\">';
+                        supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine) || '▌ Covered line';
+                        supersetHtml += '</div>';
+                    }} else if (isDefLine) {{
+                        // Show def/class lines as context
+                        supersetHtml += '<div class=\"code-line\" style=\"background: #e8f4f8; font-weight: 600;\">';
+                        supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine);
+                        supersetHtml += '</div>';
+                    }} else {{
+                        // Show blank line to maintain alignment
+                        supersetHtml += '<div class=\"code-line\" style=\"opacity: 0.3;\">';
+                        supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        supersetHtml += '<span style=\"color: #ccc;\">—</span>';
+                        supersetHtml += '</div>';
+                    }}
+                }}
+                
+                subsetHtml += '</div>';
+                supersetHtml += '</div>';
+            }}
+            
+            document.getElementById('subsetContent').innerHTML = subsetHtml || '<p style=\"padding: 20px; color: #7f8c8d;\">No coverage data</p>';
+            document.getElementById('supersetContent').innerHTML = supersetHtml || '<p style=\"padding: 20px; color: #7f8c8d;\">No coverage data</p>';
+        }}
+        
+        function applyFileFilter() {{
+            renderBothPanels();
+        }}
+        
+        function toggleSync() {{
+            syncEnabled = !syncEnabled;
+            const checkbox = document.getElementById('syncCheckbox');
+            const toggle = document.getElementById('syncToggle');
+            const splitView = document.querySelector('.split-view');
+            const filePanels = document.querySelectorAll('.file-panel');
+            
+            checkbox.checked = syncEnabled;
+            if (syncEnabled) {{
+                toggle.classList.add('active');
+                // Use single scroll - both panels scroll together
+                splitView.classList.remove('independent');
+                filePanels.forEach(panel => panel.classList.remove('independent'));
+            }} else {{
+                toggle.classList.remove('active');
+                // Enable independent scrolling for each panel
+                splitView.classList.add('independent');
+                filePanels.forEach(panel => panel.classList.add('independent'));
+            }}
+        }}
+        
+        function toggleGap(element, side) {{
+            const gapId = element.getAttribute('data-gap-id');
+            const gapStart = parseInt(element.getAttribute('data-gap-start'));
+            const gapEnd = parseInt(element.getAttribute('data-gap-end'));
+            const file = element.getAttribute('data-file');
+            
+            // Find the corresponding gap in the other panel
+            const otherSide = side === 'subset' ? 'superset' : 'subset';
+            const otherContent = document.getElementById(otherSide + 'Content');
+            const otherGap = otherContent.querySelector('.gap-line[data-gap-id="' + gapId + '"]');
+            
+            // Check if already expanded
+            const isExpanded = element.classList.contains('expanded');
+            
+            if (isExpanded) {{
+                // Collapse both sides
+                const expandedLines = element.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
+                expandedLines.forEach(line => line.remove());
+                element.classList.remove('expanded');
+                element.innerHTML = '<strong>⋮ (' + (gapEnd - gapStart + 1) + ' line' + (gapEnd - gapStart > 0 ? 's' : '') + ') ⋮ Click to expand</strong>';
+                
+                // Collapse other side
+                if (otherGap) {{
+                    const otherExpandedLines = otherGap.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
+                    otherExpandedLines.forEach(line => line.remove());
+                    otherGap.classList.remove('expanded');
+                    otherGap.innerHTML = '<strong>⋮ (' + (gapEnd - gapStart + 1) + ' line' + (gapEnd - gapStart > 0 ? 's' : '') + ') ⋮ Click to expand</strong>';
+                }}
+            }} else {{
+                // Expand both sides
+                const fileSource = sourceCode[file] || {{}};
+                element.classList.add('expanded');
+                element.innerHTML = '<strong>⋮ Click to collapse ⋮</strong>';
+                
+                let insertHtml = '';
+                for (let lineNum = gapStart; lineNum <= gapEnd; lineNum++) {{
+                    const sourceLine = fileSource[lineNum] || '';
+                    const lineNumStr = String(lineNum).padStart(4, ' ');
+                    
+                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #667eea;">';
+                    insertHtml += '<span style="color: #aaa; margin-right: 10px;">' + lineNumStr + '</span>';
+                    insertHtml += '<span style="color: #666;">' + escapeHtml(sourceLine) + '</span>';
+                    insertHtml += '</div>';
+                }}
+                
+                // Insert after the gap element on current side
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = insertHtml;
+                while (tempDiv.firstChild) {{
+                    element.parentNode.insertBefore(tempDiv.firstChild, element.nextSibling);
+                }}
+                
+                // Expand other side
+                if (otherGap) {{
+                    otherGap.classList.add('expanded');
+                    otherGap.innerHTML = '<strong>⋮ Click to collapse ⋮</strong>';
+                    
+                    const tempDiv2 = document.createElement('div');
+                    tempDiv2.innerHTML = insertHtml;
+                    while (tempDiv2.firstChild) {{
+                        otherGap.parentNode.insertBefore(tempDiv2.firstChild, otherGap.nextSibling);
+                    }}
+                }}
+            }}
+        }}
+        
+        function closeModal() {{
+            document.getElementById('comparisonModal').style.display = 'none';
+            currentData = null;
+        }}
+        
+        function escapeHtml(text) {{
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }}
+        
+        window.onclick = function(event) {{
+            const modal = document.getElementById('comparisonModal');
+            if (event.target == modal) {{
+                closeModal();
+            }}
+        }}
+        
+        document.addEventListener('keydown', function(event) {{
+            if (event.key === 'Escape') {{
+                closeModal();
+            }}
+        }});
+        
+        // Format all test names on page load
+        document.addEventListener('DOMContentLoaded', function() {{
+            const testNames = document.querySelectorAll('.test-name');
+            testNames.forEach(el => {{
+                const originalText = el.textContent;
+                if (originalText.includes('::')) {{
+                    el.innerHTML = formatTestName(originalText);
+                }}
+            }});
+        }});
+        </script>
+        
         <div class="footer">
             <p>Generated by <strong>TestIQ</strong> - Intelligent Test Analysis</p>
-            <p>🔗 <a href="https://github.com/testiq-dev/testiq" style="color: #667eea;">github.com/testiq-dev/testiq</a></p>
+            <p>🔗 <a href="https://github.com/pydevtools/TestIQ" style="color: #667eea;">github.com/pydevtools/TestIQ</a></p>
         </div>
     </div>
 </body>

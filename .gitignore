@@ -22,8 +22,18 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 
-# TestIQ cache
+# TestIQ cache and outputs
 .testiq/
+*.json
+!examples/**/*.json
+reports/*.html
+!reports/test_report.html
+
+# Temporary test files
+test_*.py
+!tests/test_*.py
+enhance_*.py
+*_enhanced.py
 
 # IDEs and editors
 .vscode/
