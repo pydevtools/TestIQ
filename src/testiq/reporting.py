@@ -582,11 +582,7 @@ class HTMLReportGenerator:
             </div>
         </div>
 
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: {duplicate_percentage:.1f}%">
-                {duplicate_percentage:.1f}%
-            </div>
-        </div>
+
 
         <div class="tabs">
             <button class="tab active" onclick="switchTab('exact')">🎯 Exact Duplicates ({len(exact_dups)})</button>
@@ -638,9 +634,12 @@ class HTMLReportGenerator:
         }}
         
         // Data for pagination
+        // Note: Coverage data is limited to first 20 items for similar and subset
+        const maxSimilar = 20;
+        const maxSubset = 20;
         const exactDupsData = {json.dumps([[list(group), i-1] for i, group in enumerate(exact_dups, 1)])};
-        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
-        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + len(similar) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
+        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar[:20])])};
+        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + min(len(similar), 20) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20])])};
         
         // Build coverage data per file
         const coverageByFile = {{}};
@@ -864,11 +863,6 @@ class HTMLReportGenerator:
                 }}
             }});
         }}
-        
-        // Initial render
-        renderExactDuplicates(1);
-        renderSimilarTests(1);
-        renderSubsetDuplicates(1);
         </script>
 """
         
@@ -978,7 +972,16 @@ class HTMLReportGenerator:
                 "supersetName": superset_test
             })
 
-        html += f"""
+        # Serialize JSON data before embedding
+        coverage_data_json = json.dumps(coverage_data, ensure_ascii=True)
+        source_code_map_json = json.dumps(source_code_map, ensure_ascii=True)
+        
+        # Escape HTML-breaking tags in JSON strings
+        # Even though it's in JSON, the browser's HTML parser will see </script> and break
+        coverage_data_json = coverage_data_json.replace('</script>', '<\\/script>').replace('<script', '<\\script')
+        source_code_map_json = source_code_map_json.replace('</script>', '<\\/script>').replace('<script', '<\\script')
+
+        html += """
         <!-- Modal for split-screen coverage view -->
         <div id="comparisonModal" class="modal">
             <div class="modal-content">
@@ -1021,9 +1024,7 @@ class HTMLReportGenerator:
         </div>
 
         <script>
-        const coverageData = {json.dumps(coverage_data, ensure_ascii=True)};
-        const sourceCode = {json.dumps(source_code_map, ensure_ascii=True)};
-        let currentData = null;
+        const coverageData = """ + coverage_data_json + """;\n        const sourceCode = """ + source_code_map_json + """;\n        let currentData = null;
         let syncEnabled = true;
         let isScrolling = false;
         
@@ -1084,7 +1085,7 @@ class HTMLReportGenerator:
                 
                 const subsetLineSet = new Set(subsetLines);
                 const supersetLineSet = new Set(supersetLines);
-                const fileSource = sourceCode[file] || {{}};
+                const fileSource = sourceCode[file] || {};
                 
                 // Find and include method/class definitions for context
                 const minLine = Math.min(...allLineNums);
@@ -1276,7 +1277,7 @@ class HTMLReportGenerator:
                 }}
             }} else {{
                 // Expand both sides
-                const fileSource = sourceCode[file] || {{}};
+                const fileSource = sourceCode[file] || {};
                 element.classList.add('expanded');
                 element.innerHTML = '<strong>⋮ Click to collapse ⋮</strong>';
                 
@@ -1339,6 +1340,11 @@ class HTMLReportGenerator:
                     el.innerHTML = formatTestName(originalText);
                 }}
             }});
+            
+            // Initial render after DOM is loaded and all functions are defined
+            renderExactDuplicates(1);
+            renderSimilarTests(1);
+            renderSubsetDuplicates(1);
         }});
         </script>
         
