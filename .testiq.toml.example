@@ -1,0 +1,28 @@
+# TestIQ Configuration File Example (TOML format)
+# Save as .testiq.toml in your project root
+
+[log]
+level = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+file = null  # Path to log file, or null for console only
+# file = "/var/log/testiq/testiq.log"
+enable_rotation = true
+max_bytes = 10485760  # 10MB
+backup_count = 5
+
+[security]
+max_file_size = 104857600  # 100MB
+max_tests = 50000
+max_lines_per_file = 100000
+allowed_extensions = [".json", ".yaml", ".yml"]
+
+[performance]
+enable_parallel = true
+max_workers = 4  # Number of parallel workers
+enable_caching = true
+cache_dir = null  # Default: ~/.testiq/cache
+# cache_dir = "/tmp/testiq-cache"
+
+[analysis]
+similarity_threshold = 0.7  # 0.0 to 1.0
+min_coverage_lines = 1
+max_results = 1000
