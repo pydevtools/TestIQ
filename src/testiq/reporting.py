@@ -438,16 +438,16 @@ class HTMLReportGenerator:
                 <div class="stat-label">Total Test Methods</div>
             </div>
             <div class="stat-card success">
-                <div class="stat-value">{duplicate_count}</div>
-                <div class="stat-label">Duplicates Found</div>
+                <div class="stat-value">{len(exact_dups)}</div>
+                <div class="stat-label">Exact Duplicate Groups</div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-value">{len(similar)}</div>
+                <div class="stat-label">Similar Test Pairs</div>
             </div>
             <div class="stat-card warning">
                 <div class="stat-value">{len(subset_dups)}</div>
                 <div class="stat-label">Subset Duplicates</div>
-            </div>
-            <div class="stat-card info">
-                <div class="stat-value">{len(similar)}</div>
-                <div class="stat-label">Similar Pairs</div>
             </div>
         </div>
 
@@ -491,39 +491,7 @@ class HTMLReportGenerator:
 
         html += f"""
         <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
-        <p>Test pairs with significant code coverage overlap.</p>
-"""
-
-        if subset_dups:
-            html += """
-        <table>
-            <thead>
-                <tr>
-                    <th>Subset Test</th>
-                    <th>Superset Test</th>
-                    <th>Coverage Ratio</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-            for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20]):
-                html += f"""                <tr class="clickable-row" onclick="showComparison({i})">
-                    <td><span class="test-name">{subset_test}</span></td>
-                    <td><span class="test-name">{superset_test}</span></td>
-                    <td><span class="badge badge-warning">{ratio:.1%}</span></td>
-                    <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
-                </tr>
-"""
-            html += """            </tbody>
-        </table>
-"""
-        else:
-            html += '        <p style="color: #27ae60;">✓ No subset duplicates found!</p>\n'
-
-        html += f"""
-        <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
-        <p>Test pairs with significant code coverage overlap.</p>
+        <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
 """
 
         if similar:
