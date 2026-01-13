@@ -23,6 +23,26 @@ class HTMLReportGenerator:
         """Initialize HTML report generator."""
         self.finder = finder
 
+    def _build_coverage_data_js(self) -> str:
+        """Build JavaScript code to populate coverage data."""
+        # Group lines by file
+        file_coverage = {}
+        for test in self.finder.tests:
+            for filename, line in test.covered_lines:
+                if filename not in file_coverage:
+                    file_coverage[filename] = {'lines': set(), 'tests': set()}
+                file_coverage[filename]['lines'].add(line)
+                file_coverage[filename]['tests'].add(test.test_name)
+        
+        # Build JS code
+        js_lines = []
+        for filename, data in sorted(file_coverage.items()):
+            lines_count = len(data['lines'])
+            tests_count = len(data['tests'])
+            js_lines.append(f"coverageByFile[{json.dumps(filename)}] = {{lines: {lines_count}, tests: {tests_count}}};")
+        
+        return '\n        '.join(js_lines)
+
     def generate(
         self,
         output_path: Path,
@@ -70,10 +90,21 @@ class HTMLReportGenerator:
         # Collect and read source files for the split-screen view
         source_reader = SourceCodeReader()
         all_files = set()
+        unique_lines_covered = set()
         for test in self.finder.tests:
-            for filename, _ in test.covered_lines:
+            for filename, line in test.covered_lines:
                 all_files.add(filename)
+                unique_lines_covered.add((filename, line))
+        
         source_code_map = source_reader.read_multiple(list(all_files))
+        
+        # Calculate total lines in all files
+        total_lines_in_files = sum(len(lines) for lines in source_code_map.values())
+        lines_covered = len(unique_lines_covered)
+        files_covered = len(all_files)
+        
+        coverage_percentage = (lines_covered / total_lines_in_files * 100) if total_lines_in_files > 0 else 0
+        uncovered_percentage = 100 - coverage_percentage if total_lines_in_files > 0 else 0
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -541,6 +572,14 @@ class HTMLReportGenerator:
                 <div class="stat-value">{len(subset_dups)}</div>
                 <div class="stat-label">Subset Duplicates</div>
             </div>
+            <div class="stat-card success">
+                <div class="stat-value">{coverage_percentage:.1f}%</div>
+                <div class="stat-label">Lines Covered</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value">{uncovered_percentage:.1f}%</div>
+                <div class="stat-label">Lines Uncovered</div>
+            </div>
         </div>
 
         <div class="progress-bar">
@@ -577,13 +616,68 @@ class HTMLReportGenerator:
         </div>
 
         <script>
+        // Utility function for escaping HTML to prevent XSS
+        function escapeHtml(text) {{
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }}
+        
+        // Utility function to format test names with separators
+        function formatTestName(testName) {{
+            // Split test name at :: for better readability
+            const parts = testName.split('::');
+            if (parts.length === 1) return testName;
+            
+            return parts.map((part, idx) => {{
+                if (idx === parts.length - 1) {{
+                    return '<span class="test-part">' + part + '</span>';
+                }}
+                return '<span class="test-part">' + part + '</span><span class="test-separator">::</span><wbr>';
+            }}).join('');
+        }}
+        
         // Data for pagination
         const exactDupsData = {json.dumps([[list(group), i-1] for i, group in enumerate(exact_dups, 1)])};
         const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
         const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + len(similar) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
         
+        // Build coverage data per file
+        const coverageByFile = {{}};
+        {self._build_coverage_data_js()}
+        
         const itemsPerPage = 20;
-        let currentPages = {{ exact: 1, similar: 1, subset: 1 }};
+        let currentPages = {{ exact: 1, similar: 1, subset: 1, coverage: 1 }};
+        
+        function truncateTestName(testName) {{
+            if (!testName || typeof testName !== 'string') {{
+                return '';
+            }}
+            
+            // Extract just the meaningful parts of the test name
+            const parts = testName.split('::');
+            if (parts.length <= 2) {{
+                return testName;
+            }}
+            
+            try {{
+                // Get the file name (without path)
+                const filePart = parts[0].split('/').pop() || parts[0];
+                // Get the class name (if exists) and test name
+                const classPart = parts.length > 2 ? parts[parts.length - 2] : '';
+                const testPart = parts[parts.length - 1];
+                
+                // Format: FileName::Class::test_name
+                if (classPart) {{
+                    return filePart + '::' + classPart + '::' + testPart;
+                }} else {{
+                    return filePart + '::' + testPart;
+                }}
+            }} catch (e) {{
+                console.error('Error truncating test name:', e);
+                return testName;
+            }}
+        }}
         
         function switchTab(tabName) {{
             // Hide all tabs
@@ -618,7 +712,11 @@ class HTMLReportGenerator:
                 
                 pageData.forEach(([group, coverageIdx], idx) => {{
                     const groupNum = start + idx + 1;
-                    const testList = group.map(test => `<span class="test-name">${{test}}</span>`).join('<br>');
+                    const testList = group.map(test => {{
+                        if (!test) return '';
+                        const truncated = truncateTestName(test);
+                        return `<span class="test-name" title="${{escapeHtml(test)}}" style="cursor: help;">${{escapeHtml(truncated)}}</span>`;
+                    }}).filter(t => t).join('<br>');
                     html += `
                         <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
                             <td><strong>Group ${{groupNum}}</strong></td>
@@ -658,11 +756,15 @@ class HTMLReportGenerator:
                     <tbody>`;
                 
                 pageData.forEach(([test1, test2, similarity, coverageIdx]) => {{
+                    if (!test1 || !test2) return;
+                    const t1 = escapeHtml(truncateTestName(test1));
+                    const t2 = escapeHtml(truncateTestName(test2));
+                    const simPercent = (similarity * 100).toFixed(1);
                     html += `
                         <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
-                            <td><span class="test-name">${{test1}}</span></td>
-                            <td><span class="test-name">${{test2}}</span></td>
-                            <td><span class="badge badge-info">${{(similarity * 100).toFixed(1)}}%</span></td>
+                            <td><span class="test-name" title="${{escapeHtml(test1)}}" style="cursor: help;">${{t1}}</span></td>
+                            <td><span class="test-name" title="${{escapeHtml(test2)}}" style="cursor: help;">${{t2}}</span></td>
+                            <td><span class="badge badge-info">${{simPercent}}%</span></td>
                             <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
                         </tr>`;
                 }});
@@ -697,11 +799,15 @@ class HTMLReportGenerator:
                     <tbody>`;
                 
                 pageData.forEach(([subsetTest, supersetTest, ratio, coverageIdx]) => {{
+                    if (!subsetTest || !supersetTest) return;
+                    const sub = escapeHtml(truncateTestName(subsetTest));
+                    const sup = escapeHtml(truncateTestName(supersetTest));
+                    const ratioPercent = (ratio * 100).toFixed(1);
                     html += `
                         <tr class="clickable-row" onclick="showComparison(${{coverageIdx}})">
-                            <td><span class="test-name">${{subsetTest}}</span></td>
-                            <td><span class="test-name">${{supersetTest}}</span></td>
-                            <td><span class="badge badge-warning">${{(ratio * 100).toFixed(1)}}%</span></td>
+                            <td><span class="test-name" title="${{escapeHtml(subsetTest)}}" style="cursor: help;">${{sub}}</span></td>
+                            <td><span class="test-name" title="${{escapeHtml(supersetTest)}}" style="cursor: help;">${{sup}}</span></td>
+                            <td><span class="badge badge-warning">${{ratioPercent}}%</span></td>
                             <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
                         </tr>`;
                 }});
@@ -725,12 +831,11 @@ class HTMLReportGenerator:
             const start = (currentPage - 1) * itemsPerPage + 1;
             const end = Math.min(currentPage * itemsPerPage, totalItems);
             
-            let html = `
-                <button class="page-btn" onclick="changePage('${{type}}', ${{currentPage - 1}})" 
-                    ${{currentPage === 1 ? 'disabled' : ''}}>← Previous</button>
-                <span class="page-info">${{start}}-${{end}} of ${{totalItems}} | Page ${{currentPage}}/${{totalPages}}</span>
-                <button class="page-btn" onclick="changePage('${{type}}', ${{currentPage + 1}})" 
-                    ${{currentPage === totalPages ? 'disabled' : ''}}>Next →</button>`;
+            let html = '<button class="page-btn" onclick="changePage(\\'' + type + '\\', ' + (currentPage - 1) + ')" ' +
+                (currentPage === 1 ? 'disabled' : '') + '>← Previous</button>' +
+                '<span class="page-info">' + start + '-' + end + ' of ' + totalItems + ' | Page ' + currentPage + '/' + totalPages + '</span>' +
+                '<button class="page-btn" onclick="changePage(\\'' + type + '\\', ' + (currentPage + 1) + ')" ' +
+                (currentPage === totalPages ? 'disabled' : '') + '>Next →</button>';
             
             document.getElementById(type + '-pagination').innerHTML = html;
         }}
@@ -916,24 +1021,11 @@ class HTMLReportGenerator:
         </div>
 
         <script>
-        const coverageData = {json.dumps(coverage_data)};
-        const sourceCode = {json.dumps(source_code_map)};
+        const coverageData = {json.dumps(coverage_data, ensure_ascii=True)};
+        const sourceCode = {json.dumps(source_code_map, ensure_ascii=True)};
         let currentData = null;
         let syncEnabled = true;
         let isScrolling = false;
-        
-        function formatTestName(testName) {{
-            // Split test name at :: for better readability
-            const parts = testName.split('::');
-            if (parts.length === 1) return testName;
-            
-            return parts.map((part, idx) => {{
-                if (idx === parts.length - 1) {{
-                    return '<span class="test-part">' + part + '</span>';
-                }}
-                return '<span class="test-part">' + part + '</span><span class="test-separator">::</span><wbr>';
-            }}).join('');
-        }}
         
         function showComparison(index) {{
             const data = coverageData[index];
@@ -1193,7 +1285,7 @@ class HTMLReportGenerator:
                     const sourceLine = fileSource[lineNum] || '';
                     const lineNumStr = String(lineNum).padStart(4, ' ');
                     
-                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #00c6ff;">';';
+                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #00c6ff;">';
                     insertHtml += '<span style="color: #aaa; margin-right: 10px;">' + lineNumStr + '</span>';
                     insertHtml += '<span style="color: #666;">' + escapeHtml(sourceLine) + '</span>';
                     insertHtml += '</div>';
@@ -1223,12 +1315,6 @@ class HTMLReportGenerator:
         function closeModal() {{
             document.getElementById('comparisonModal').style.display = 'none';
             currentData = null;
-        }}
-        
-        function escapeHtml(text) {{
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }}
         
         window.onclick = function(event) {{
