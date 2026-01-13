@@ -438,6 +438,7 @@ class HTMLReportGenerator:
             border-radius: 8px 8px 0 0;
             cursor: pointer;
             font-weight: 600;
+            font-size: 16px;
             color: #7f8c8d;
             transition: all 0.3s ease;
             position: relative;
@@ -519,6 +520,10 @@ class HTMLReportGenerator:
                 <div class="stat-value">{total_tests}</div>
                 <div class="stat-label">Total Test Methods</div>
             </div>
+            <div class="stat-card danger">
+                <div class="stat-value">{duplicate_count}</div>
+                <div class="stat-label">Duplicates</div>
+            </div>
             <div class="stat-card success">
                 <div class="stat-value">{len(exact_dups)}</div>
                 <div class="stat-label">Exact Duplicate Groups</div>
@@ -535,7 +540,7 @@ class HTMLReportGenerator:
 
         <div class="progress-bar">
             <div class="progress-fill" style="width: {duplicate_percentage:.1f}%">
-                {duplicate_percentage:.1f}% Duplicates
+                {duplicate_percentage:.1f}%
             </div>
         </div>
 
