@@ -125,14 +125,17 @@ class HTMLReportGenerator:
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }}
-        .stat-card.success {{
+        .stat-card.danger {{
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }}
+        .stat-card.success {{
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }}
         .stat-card.warning {{
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
         }}
         .stat-card.info {{
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
         }}
         .stat-value {{
             font-size: 2.5em;
@@ -760,7 +763,6 @@ class HTMLReportGenerator:
         renderSimilarTests(1);
         renderSubsetDuplicates(1);
         </script>
-
 """
         
         # Add modal and JavaScript for split-screen view
