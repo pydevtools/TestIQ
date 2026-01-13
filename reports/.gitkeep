@@ -1,0 +1,2 @@
+# This file ensures the reports directory is tracked by git
+# All generated reports should go in this directory

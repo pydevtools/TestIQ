@@ -1,0 +1,5 @@
+# Generated reports
+reports/*.html
+reports/*.csv  
+reports/*.md
+!reports/.gitkeep

@@ -23,60 +23,117 @@
 ## 📦 Installation
 
 ```bash
-## 📦 Installation
-
-```bash
 pip install testiq
 ```
 
-## 🎯 Quick Start
+---
 
-### 1. Analyze Your Tests
+## 🚀 How to Use TestIQ
+
+### Quick Start
+
+**See it in action immediately:**
+```bash
+testiq demo
+```
+
+### CLI Usage
+
+#### 1. Analyze Your Tests
 
 ```bash
 # Basic analysis with terminal output
 testiq analyze coverage.json
 
 # Generate beautiful HTML report
-testiq analyze coverage.json --format html --output report.html
+testiq analyze coverage.json --format html --output reports/report.html
 
-# CSV export for data analysis
-testiq analyze coverage.json --format csv --output duplicates.csv
-
-# JSON output for programmatic use
-testiq analyze coverage.json --format json --output results.json
-```
-
----
-
-## 🎯 Quick Start
-
-**CLI Usage:**
-
-```bash
-# Analyze tests and generate report
-testiq analyze coverage.json --format html --output report.html
-
-# Get quality score
+# Get quality score and recommendations
 testiq quality-score coverage.json
 
-# CI/CD with quality gates
-testiq analyze coverage.json --quality-gate --max-duplicates 5
+# CSV export for spreadsheet analysis
+testiq analyze coverage.json --format csv --output reports/results.csv
+
+# JSON output for automation
+testiq analyze coverage.json --format json --output reports/results.json
 ```
 
-**Python API:**
+#### 2. CI/CD Integration
+
+```bash
+# Quality gates (exit code 2 if failed)
+testiq analyze coverage.json --quality-gate --max-duplicates 5
+
+# Save baseline for future comparisons
+testiq analyze coverage.json --save-baseline my-baseline
+
+# Compare against baseline
+testiq analyze coverage.json --quality-gate --baseline my-baseline
+
+# Manage baselines
+testiq baseline list
+testiq baseline show my-baseline
+testiq baseline delete old-baseline
+```
+
+#### 3. Python API
 
 ```python
 from testiq.analyzer import CoverageDuplicateFinder
+import json
 
-finder = CoverageDuplicateFinder()
-finder.add_test_coverage("test_login", {"auth.py": [10, 11, 12]})
+# Create analyzer with performance options
+finder = CoverageDuplicateFinder(
+    enable_parallel=True,
+    max_workers=4,
+    enable_caching=True
+)
 
-duplicates = finder.find_exact_duplicates()
-report = finder.generate_report()
+# Load coverage data
+with open('coverage.json') as f:
+    coverage_data = json.load(f)
+
+# Add test coverage
+for test_name, test_coverage in coverage_data.items():
+    finder.add_test_coverage(test_name, test_coverage)
+
+# Find issues
+exact_duplicates = finder.find_exact_duplicates()
+subset_duplicates = finder.find_subset_duplicates()
+similar_tests = finder.find_similar_coverage(threshold=0.8)
+
+# Generate reports
+from testiq.reporting import HTMLReportGenerator
+html_gen = HTMLReportGenerator(finder)
+html_gen.generate(Path("reports/report.html"), threshold=0.8)
+
+# Quality analysis
+from testiq.analysis import QualityAnalyzer
+analyzer = QualityAnalyzer(finder)
+score = analyzer.calculate_score(threshold=0.8)
+print(f"Quality Score: {score.overall_score}/100 (Grade: {score.grade})")
 ```
 
-📖 **[Full Documentation →](docs/README.md)** | **[User Guide →](docs/guide.md)** | **[API Reference →](docs/api.md)**
+#### 4. Examples & Testing
+
+**See complete working examples:**
+- 📁 **[Python API Examples](examples/python/)** - Complete demonstration of all features
+- 📁 **[Bash Examples](examples/bash/)** - Quick CLI testing scripts
+- 📁 **[CI/CD Examples](examples/cicd/)** - Jenkins & GitHub Actions integration
+- 📖 **[Manual Testing Guide](docs/manual-testing.md)** - Comprehensive testing guide
+
+**CI/CD Integration:**
+- [Jenkinsfile Example](examples/cicd/Jenkinsfile) - Complete Jenkins pipeline with quality gates
+- [GitHub Actions Example](examples/cicd/github-actions.yml) - Full workflow with error handling
+
+---
+
+### Next Steps
+
+1. **Try the demo:** `testiq demo`
+2. **Analyze your tests:** `testiq analyze coverage.json`
+3. **Run examples:** `python examples/python/manual_test.py`
+4. **Integrate with CI/CD:** See [examples/cicd/](examples/cicd/)
 
 ---
 
@@ -98,6 +155,7 @@ report = finder.generate_report()
 | **[CLI Reference](docs/cli-reference.md)** | Command-line interface documentation |
 | **[API Reference](docs/api.md)** | Python API documentation |
 | **[Integration Guide](docs/integration.md)** | pytest, unittest, GitHub Actions |
+| **[Manual Testing Guide](docs/manual-testing.md)** | How to test TestIQ manually |
 | **[Enterprise Features](docs/enterprise-features.md)** | Advanced capabilities |
 | **[FAQ](docs/faq.md)** | Frequently asked questions |
 | **[Contributing](docs/CONTRIBUTING.md)** | How to contribute |
