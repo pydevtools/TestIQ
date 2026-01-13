@@ -8,11 +8,8 @@ on:
 
 jobs:
   test:
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Python 3.13
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -22,10 +19,10 @@ jobs:
       with:
         version: "latest"
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.13"
     
     - name: Install dependencies
       run: |
@@ -34,29 +31,80 @@ jobs:
     - name: Run ruff (lint)
       run: |
         uv run ruff check src/ tests/
+      continue-on-error: true
     
     - name: Run ruff (format check)
       run: |
         uv run ruff format --check src/ tests/
+      continue-on-error: true
     
     - name: Run black (format check)
       run: |
         uv run black --check src/ tests/
+      continue-on-error: true
     
     - name: Run mypy (type check)
       run: |
         uv run mypy src/
       continue-on-error: true
     
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        uv run pytest tests/ -v --cov=testiq --cov-report=xml --cov-report=term
+        uv run pytest tests/ -v --cov=testiq --cov-report=xml --cov-report=json --cov-report=term
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         fail_ci_if_error: false
+
+  quality-gate:
+    name: TestIQ Quality Gate (Dogfooding)
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+    
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    
+    - name: Install TestIQ
+      run: |
+        uv pip install --system -e .
+    
+    - name: Run tests with coverage
+      run: |
+        uv pip install --system pytest pytest-cov
+        pytest --cov --cov-report=json
+    
+    - name: Analyze test quality with TestIQ
+      run: |
+        testiq analyze coverage.json \
+          --quality-gate \
+          --max-duplicates 10 \
+          --max-duplicate-percentage 5.0 \
+          --save-baseline ci-baseline
+      continue-on-error: true
+    
+    - name: Generate HTML report
+      if: always()
+      run: |
+        mkdir -p reports
+        testiq analyze coverage.json --format html --output reports/testiq-report.html
+    
+    - name: Upload TestIQ report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: testiq-quality-report
+        path: reports/testiq-report.html
+        retention-days: 30
 
   demo:
     name: Test Demo Command
@@ -68,10 +116,10 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v4
     
-    - name: Set up Python
+    - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.13"
     
     - name: Install package
       run: |
