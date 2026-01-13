@@ -119,29 +119,20 @@ class HTMLReportGenerator:
             margin-bottom: 40px;
         }}
         .stat-card {{
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }}
-        .stat-card:hover {{
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }}
-        .stat-card.danger {{
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }}
         .stat-card.success {{
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }}
         .stat-card.warning {{
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }}
         .stat-card.info {{
-            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }}
         .stat-value {{
             font-size: 2.5em;
@@ -157,7 +148,7 @@ class HTMLReportGenerator:
             margin-top: 40px;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 3px solid #00c6ff;
+            border-bottom: 3px solid #667eea;
         }}
         table {{
             width: 100%;
@@ -166,7 +157,7 @@ class HTMLReportGenerator:
             background: white;
         }}
         th {{
-            background: #00c6ff;
+            background: #667eea;
             color: white;
             padding: 12px;
             text-align: left;
@@ -206,7 +197,7 @@ class HTMLReportGenerator:
             padding: 15px;
             border-radius: 6px;
             margin-bottom: 15px;
-            border-left: 4px solid #00c6ff;
+            border-left: 4px solid #667eea;
         }}
         .test-name {{
             font-family: 'Courier New', monospace;
@@ -271,7 +262,7 @@ class HTMLReportGenerator:
         }}
         .modal-header {{
             padding: 20px;
-            background: linear-gradient(135deg, #00c6ff 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 8px 8px 0 0;
             display: flex;
@@ -356,7 +347,7 @@ class HTMLReportGenerator:
             background: #e8f4f8;
             padding: 15px;
             margin: 10px 20px;
-            border-left: 4px solid #00c6ff;
+            border-left: 4px solid #667eea;
             border-radius: 4px;
             display: flex;
             align-items: center;
@@ -402,7 +393,7 @@ class HTMLReportGenerator:
             background: #f0f0ff;
         }}
         .sync-toggle.active {{
-            background: #00c6ff;
+            background: #667eea;
             color: white;
         }}
         .sync-checkbox {{
@@ -410,7 +401,7 @@ class HTMLReportGenerator:
             height: 18px;
             cursor: pointer;
         }}
-            border-left: 4px solid #00c6ff;
+            border-left: 4px solid #667eea;
             border-radius: 4px;
         }}
         @keyframes fadeIn {{
@@ -426,7 +417,7 @@ class HTMLReportGenerator:
         }}
         .progress-fill {{
             height: 100%;
-            background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -459,8 +450,8 @@ class HTMLReportGenerator:
         }}
         .tab.active {{
             background: white;
-            color: #00c6ff;
-            border-bottom: 2px solid #00c6ff;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
         }}
         .tab-content {{
             display: none;
@@ -478,7 +469,7 @@ class HTMLReportGenerator:
         }}
         .page-btn {{
             padding: 8px 12px;
-            background: #00c6ff;
+            background: #667eea;
             color: white;
             border: none;
             border-radius: 4px;
@@ -487,7 +478,7 @@ class HTMLReportGenerator:
             transition: all 0.2s ease;
         }}
         .page-btn:hover:not(:disabled) {{
-            background: #0088cc;
+            background: #5568d3;
             transform: translateY(-2px);
         }}
         .page-btn:disabled {{
@@ -502,11 +493,11 @@ class HTMLReportGenerator:
         .loading {{
             text-align: center;
             padding: 20px;
-            color: #00c6ff;
+            color: #667eea;
         }}
         .spinner {{
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #00c6ff;
+            border-top: 3px solid #667eea;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -525,19 +516,23 @@ class HTMLReportGenerator:
         <div class="timestamp">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
         
         <div class="stats">
-            <div class="stat-card" onclick="switchTab('exact')">
+            <div class="stat-card">
                 <div class="stat-value">{total_tests}</div>
                 <div class="stat-label">Total Test Methods</div>
             </div>
-            <div class="stat-card danger" onclick="switchTab('exact')">
+            <div class="stat-card danger">
                 <div class="stat-value">{duplicate_count}</div>
                 <div class="stat-label">Duplicates</div>
             </div>
-            <div class="stat-card info" onclick="switchTab('similar')">
+            <div class="stat-card success">
+                <div class="stat-value">{len(exact_dups)}</div>
+                <div class="stat-label">Exact Duplicate Groups</div>
+            </div>
+            <div class="stat-card info">
                 <div class="stat-value">{len(similar)}</div>
                 <div class="stat-label">Similar Test Pairs</div>
             </div>
-            <div class="stat-card warning" onclick="switchTab('subset')">
+            <div class="stat-card warning">
                 <div class="stat-value">{len(subset_dups)}</div>
                 <div class="stat-label">Subset Duplicates</div>
             </div>
@@ -624,7 +619,7 @@ class HTMLReportGenerator:
                             <td><strong>Group ${{groupNum}}</strong></td>
                             <td>${{testList}}</td>
                             <td><span class="badge badge-danger">${{group.length}} tests</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
                         </tr>`;
                 }});
                 
@@ -663,7 +658,7 @@ class HTMLReportGenerator:
                             <td><span class="test-name">${{test1}}</span></td>
                             <td><span class="test-name">${{test2}}</span></td>
                             <td><span class="badge badge-info">${{(similarity * 100).toFixed(1)}}%</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
                         </tr>`;
                 }});
                 
@@ -702,7 +697,7 @@ class HTMLReportGenerator:
                             <td><span class="test-name">${{subsetTest}}</span></td>
                             <td><span class="test-name">${{supersetTest}}</span></td>
                             <td><span class="badge badge-warning">${{(ratio * 100).toFixed(1)}}%</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #667eea; font-weight: 600;">🔍 View Coverage</span></td>
                         </tr>`;
                 }});
                 
@@ -765,6 +760,7 @@ class HTMLReportGenerator:
         renderSimilarTests(1);
         renderSubsetDuplicates(1);
         </script>
+
 """
         
         # Add modal and JavaScript for split-screen view
@@ -1046,13 +1042,13 @@ class HTMLReportGenerator:
                             const gapId = 'gap_' + file.replace(/[^a-zA-Z0-9]/g, '_') + '_' + gapStart + '_' + gapEnd;
                             const gapText = '⋮ (' + gap + ' line' + (gap > 1 ? 's' : '') + ') ⋮ Click to expand';
                             
-                            subsetHtml += '<div class=\"code-line gap-line\" style=\"color: #00c6ff; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            subsetHtml += '<div class=\"code-line gap-line\" style=\"color: #667eea; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
                             subsetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
                             subsetHtml += 'onclick=\"toggleGap(this, \\'subset\\')\" title=\"Click to view hidden lines\">';
                             subsetHtml += '<strong>' + gapText + '</strong>';
                             subsetHtml += '</div>';
                             
-                            supersetHtml += '<div class=\"code-line gap-line\" style=\"color: #00c6ff; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            supersetHtml += '<div class=\"code-line gap-line\" style=\"color: #667eea; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
                             supersetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
                             supersetHtml += 'onclick=\"toggleGap(this, \\'superset\\')\" title=\"Click to view hidden lines\">';
                             supersetHtml += '<strong>' + gapText + '</strong>';
@@ -1193,7 +1189,7 @@ class HTMLReportGenerator:
                     const sourceLine = fileSource[lineNum] || '';
                     const lineNumStr = String(lineNum).padStart(4, ' ');
                     
-                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #00c6ff;">';';
+                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #667eea;">';
                     insertHtml += '<span style="color: #aaa; margin-right: 10px;">' + lineNumStr + '</span>';
                     insertHtml += '<span style="color: #666;">' + escapeHtml(sourceLine) + '</span>';
                     insertHtml += '</div>';
@@ -1258,7 +1254,7 @@ class HTMLReportGenerator:
         
         <div class="footer">
             <p>Generated by <strong>TestIQ</strong> - Intelligent Test Analysis</p>
-            <p>🔗 <a href="https://github.com/pydevtools/TestIQ" style="color: #00c6ff;">github.com/pydevtools/TestIQ</a></p>
+            <p>🔗 <a href="https://github.com/pydevtools/TestIQ" style="color: #667eea;">github.com/pydevtools/TestIQ</a></p>
         </div>
     </div>
 </body>
