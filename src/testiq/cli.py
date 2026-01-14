@@ -19,7 +19,7 @@ from testiq import __version__
 from testiq.analysis import QualityAnalyzer, RecommendationEngine
 from testiq.analyzer import CoverageDuplicateFinder
 from testiq.cicd import BaselineManager, QualityGate, QualityGateChecker, TrendTracker, get_exit_code
-from testiq.config import TestIQConfig, load_config
+from testiq.config import Config, load_config
 from testiq.exceptions import TestIQError
 from testiq.logging_config import get_logger, setup_logging
 from testiq.reporting import CSVReportGenerator, HTMLReportGenerator
@@ -115,7 +115,7 @@ def main(
     "--threshold",
     "-t",
     type=float,
-    help="Similarity threshold (0.0-1.0) for detecting similar tests",
+    help="Similarity threshold (0.0-1.0). Default: 0.3 (30%). Tests with ≥30%% overlap are considered similar.",
 )
 @click.option(
     "--output",
@@ -138,7 +138,8 @@ def main(
 @click.option(
     "--max-duplicates",
     type=int,
-    help="Maximum allowed exact duplicates (for quality gate)",
+    default=0,
+    help="Maximum allowed exact duplicates. Default: 0 (no duplicates allowed)",
 )
 @click.option(
     "--baseline",
@@ -158,7 +159,7 @@ def analyze(
     output: Optional[Path],
     format: str,
     quality_gate: bool,
-    max_duplicates: Optional[int],
+    max_duplicates: int,
     baseline: Optional[Path],
     save_baseline: Optional[Path],
 ) -> None:
@@ -167,13 +168,20 @@ def analyze(
 
     COVERAGE_FILE: JSON file containing per-test coverage data
     """
-    cfg: TestIQConfig = ctx.obj["config"]
+    cfg: Config = ctx.obj["config"]
 
     # Use config threshold if not provided
     if threshold is None:
         threshold = cfg.analysis.similarity_threshold
 
-    logger.info(f"Analyzing coverage file: {coverage_file}")
+    console.print("[cyan]TestIQ Analysis Starting...[/cyan]")
+    console.print(f"  • Coverage file: {coverage_file}")
+    console.print(f"  • Similarity threshold: {threshold:.1%} (tests with ≥{threshold:.1%} overlap are flagged)")
+    console.print(f"  • Max duplicates allowed: {max_duplicates}")
+    console.print(f"  • Output format: {format}")
+    if output:
+        console.print(f"  • Output file: {output}")
+    console.print()
 
     try:
         # Security: Validate and check file
@@ -267,28 +275,39 @@ def analyze(
             console.print(f"[green]✓ CSV report saved to {output}[/green]")
 
         elif format == "json":
+            # Get statistics for comprehensive output
+            stats = finder.get_statistics(threshold)
+            
             result = {
+                "metadata": {
+                    "timestamp": datetime.now().isoformat(),
+                    "testiq_version": __version__,
+                    "threshold": threshold,
+                    "total_tests": len(finder.tests),
+                    "total_removable_duplicates": stats["total_removable_duplicates"],
+                },
                 "exact_duplicates": finder.find_exact_duplicates(),
                 "subset_duplicates": [
                     {"subset": s, "superset": sup, "ratio": r}
-                    for s, sup, r in finder.find_subset_duplicates()
+                    for s, sup, r in finder.get_sorted_subset_duplicates()
                 ],
                 "similar_tests": [
                     {"test1": t1, "test2": t2, "similarity": sim}
                     for t1, t2, sim in finder.find_similar_coverage(threshold)
                 ],
+                "statistics": stats,
             }
             output_text = json.dumps(result, indent=2)
 
             if output:
                 validated_output = sanitize_output_path(output)
                 validated_output.write_text(output_text)
-                console.print(f"[green]✓ Report saved to {validated_output}[/green]")
+                console.print(f"[green]✓ JSON report saved to {validated_output}[/green]")
             else:
                 console.print(output_text)
 
         elif format == "markdown":
-            output_text = finder.generate_report()
+            output_text = finder.generate_report(threshold)
 
             if output:
                 validated_output = sanitize_output_path(output)
@@ -343,10 +362,10 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
         console.print(table)
         console.print()
 
-    # Subset duplicates
-    subsets = finder.find_subset_duplicates()
+    # Subset duplicates (sorted by ratio)
+    subsets = finder.get_sorted_subset_duplicates()
     if subsets:
-        table = Table(title="📊 Subset Duplicates", show_header=True)
+        table = Table(title="📊 Subset Duplicates (Sorted by Coverage Ratio)", show_header=True)
         table.add_column("Subset Test", style="yellow", no_wrap=False, overflow="fold")
         table.add_column("Superset Test", style="cyan", no_wrap=False, overflow="fold")
         table.add_column("Coverage Ratio", style="magenta", width=15)
@@ -354,13 +373,17 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
         for subset_test, superset_test, ratio in subsets[:10]:
             table.add_row(subset_test, superset_test, f"{ratio:.1%}")
 
-        console.print(table)
-        console.print()
+        if len(subsets) > 10:
+            console.print(table)
+            console.print(f"[dim]... and {len(subsets) - 10} more subset duplicates[/dim]\n")
+        else:
+            console.print(table)
+            console.print()
 
     # Similar tests
     similar = finder.find_similar_coverage(threshold)
     if similar:
-        table = Table(title=f"🔍 Similar Tests (≥{threshold:.0%} overlap)", show_header=True)
+        table = Table(title=f"🔍 Similar Tests (≥{threshold:.1%} overlap)", show_header=True)
         table.add_column("Test 1", style="yellow", no_wrap=False, overflow="fold")
         table.add_column("Test 2", style="cyan", no_wrap=False, overflow="fold")
         table.add_column("Similarity", style="magenta", width=12)
@@ -368,18 +391,24 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
         for test1, test2, similarity in similar[:10]:
             table.add_row(test1, test2, f"{similarity:.1%}")
 
-        console.print(table)
-        console.print()
+        if len(similar) > 10:
+            console.print(table)
+            console.print(f"[dim]... and {len(similar) - 10} more similar test pairs[/dim]\n")
+        else:
+            console.print(table)
+            console.print()
 
-    # Summary
+    # Summary with statistics
+    stats = finder.get_statistics(threshold)
     summary_table = Table(title="📈 Summary", show_header=True, box=box.ROUNDED)
     summary_table.add_column("Metric", style="cyan")
     summary_table.add_column("Count", style="bold green")
 
     summary_table.add_row("Total tests analyzed", str(len(finder.tests)))
-    summary_table.add_row("Exact duplicates (can remove)", str(sum(len(g) - 1 for g in exact_dups)))
-    summary_table.add_row("Subset duplicates", str(len(subsets)))
-    summary_table.add_row("Similar test pairs", str(len(similar)))
+    summary_table.add_row("Exact duplicates (can remove)", str(stats["exact_duplicate_count"]))
+    summary_table.add_row("Subset duplicates (can optimize)", str(stats["subset_duplicate_count"]))
+    summary_table.add_row("Similar test pairs", str(stats["similar_pair_count"]))
+    summary_table.add_row("Total removable duplicates", str(stats["total_removable_duplicates"]))
 
     console.print(summary_table)
 
@@ -422,7 +451,7 @@ def demo() -> None:
         "test_password_reset", {"password.py": [1, 2, 3, 4, 5], "email.py": [10, 20]}
     )
 
-    display_results(finder, threshold=0.7)
+    display_results(finder, threshold=0.3)
 
 
 if __name__ == "__main__":
@@ -455,7 +484,7 @@ def quality_score(
 
     COVERAGE_FILE: JSON file containing per-test coverage data
     """
-    cfg: TestIQConfig = ctx.obj["config"]
+    cfg: Config = ctx.obj["config"]
 
     if threshold is None:
         threshold = cfg.analysis.similarity_threshold

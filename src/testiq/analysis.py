@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class TestQualityScore:
+class QualityScore:
     """Quality score for test suite."""
 
     overall_score: float  # 0-100
@@ -44,7 +44,7 @@ class QualityAnalyzer:
         """Initialize quality analyzer."""
         self.finder = finder
 
-    def calculate_score(self, threshold: float = 0.7) -> TestQualityScore:
+    def calculate_score(self, threshold: float = 0.3) -> QualityScore:
         """
         Calculate comprehensive quality score.
 
@@ -52,7 +52,7 @@ class QualityAnalyzer:
             threshold: Similarity threshold for analysis
 
         Returns:
-            TestQualityScore with detailed metrics
+            QualityScore with detailed metrics
         """
         logger.info("Calculating test quality score")
 
@@ -62,7 +62,7 @@ class QualityAnalyzer:
 
         total_tests = len(self.finder.tests)
         if total_tests == 0:
-            return TestQualityScore(
+            return QualityScore(
                 overall_score=0,
                 duplication_score=0,
                 coverage_efficiency_score=0,
@@ -111,7 +111,7 @@ class QualityAnalyzer:
             duplicate_count, len(subset_dups), len(similar), total_tests
         )
 
-        score = TestQualityScore(
+        score = QualityScore(
             overall_score=overall_score,
             duplication_score=duplication_score,
             coverage_efficiency_score=coverage_efficiency_score,
@@ -239,7 +239,7 @@ class RecommendationEngine:
         self.finder = finder
         self.quality_analyzer = QualityAnalyzer(finder)
 
-    def generate_report(self, threshold: float = 0.7) -> dict[str, Any]:
+    def generate_report(self, threshold: float = 0.3) -> dict[str, Any]:
         """
         Generate comprehensive recommendation report.
 

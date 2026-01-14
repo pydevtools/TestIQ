@@ -90,7 +90,7 @@ class QualityGateChecker:
     def check(
         self,
         finder: CoverageDuplicateFinder,
-        threshold: float = 0.7,
+        threshold: float = 0.3,
         baseline: Optional[AnalysisResult] = None,
     ) -> tuple[bool, dict[str, Any]]:
         """

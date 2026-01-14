@@ -2,7 +2,7 @@
 
 import pytest
 
-from testiq.analyzer import CoverageDuplicateFinder, TestCoverage
+from testiq.analyzer import CoverageDuplicateFinder, CoverageData
 
 
 class TestCoverageDuplicateFinder:
@@ -125,12 +125,12 @@ class TestCoverageDuplicateFinder:
 
 
 
-class TestTestCoverage:
-    """Test suite for TestCoverage class."""
+class TestCoverageDataClass:
+    """Test suite for CoverageData class."""
 
-    def test_test_coverage_creation(self):
-        """Test creating a TestCoverage instance."""
-        coverage = TestCoverage(
+    def test_create_coverage_data(self):
+        """Test creating a CoverageData instance."""
+        coverage = CoverageData(
             test_name="test_example", covered_lines={("file.py", 1), ("file.py", 2)}
         )
 
@@ -139,9 +139,9 @@ class TestTestCoverage:
         assert ("file.py", 1) in coverage.covered_lines
 
     def test_test_coverage_hash(self):
-        """Test that TestCoverage instances are hashable."""
-        coverage1 = TestCoverage("test_1", {("file.py", 1)})
-        coverage2 = TestCoverage("test_2", {("file.py", 2)})
+        """Test that CoverageData instances are hashable."""
+        coverage1 = CoverageData("test_1", {("file.py", 1)})
+        coverage2 = CoverageData("test_2", {("file.py", 2)})
 
         # Should be able to add to set
         coverage_set = {coverage1, coverage2}

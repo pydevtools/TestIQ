@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from testiq.config import TestIQConfig, load_config, load_config_from_env
+from testiq.config import Config, load_config, load_config_from_env
 from testiq.exceptions import (
     AnalysisError,
     ConfigurationError,
@@ -62,12 +62,12 @@ class TestConfig:
 
     def test_default_config(self):
         """Test default configuration values."""
-        config = TestIQConfig()
+        config = Config()
 
         assert config.log.level == "INFO"
         assert config.security.max_file_size == 100 * 1024 * 1024
         assert config.performance.enable_parallel is True
-        assert config.analysis.similarity_threshold == 0.7
+        assert config.analysis.similarity_threshold == 0.3
 
     def test_config_from_dict(self):
         """Test creating config from dictionary."""
@@ -78,7 +78,7 @@ class TestConfig:
             "analysis": {"similarity_threshold": 0.8},
         }
 
-        config = TestIQConfig.from_dict(data)
+        config = Config.from_dict(data)
 
         assert config.log.level == "DEBUG"
         assert config.security.max_tests == 1000
@@ -87,7 +87,7 @@ class TestConfig:
 
     def test_config_to_dict(self):
         """Test converting config to dictionary."""
-        config = TestIQConfig()
+        config = Config()
         config.log.level = "DEBUG"
 
         data = config.to_dict()

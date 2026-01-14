@@ -24,7 +24,7 @@ NO_TESTS_WARNING = "No tests to analyze"
 
 
 @dataclass
-class TestCoverage:
+class CoverageData:
     """Represents coverage data for a single test."""
 
     test_name: str
@@ -53,7 +53,7 @@ class CoverageDuplicateFinder:
             enable_caching: Enable result caching
             cache_dir: Directory for cache files
         """
-        self.tests: list[TestCoverage] = []
+        self.tests: list[CoverageData] = []
         self.parallel_processor = ParallelProcessor(
             max_workers=max_workers, enabled=enable_parallel
         )
@@ -92,7 +92,7 @@ class CoverageDuplicateFinder:
                         raise ValidationError(f"Invalid line number for '{filename}': {line}")
                     covered_lines.add((filename, line))
 
-            self.tests.append(TestCoverage(test_name, covered_lines))
+            self.tests.append(CoverageData(test_name, covered_lines))
             logger.debug(f"Added test '{test_name}' with {len(covered_lines)} covered lines")
 
         except Exception as e:
@@ -178,6 +178,50 @@ class CoverageDuplicateFinder:
             logger.error(f"Error finding subset duplicates: {e}")
             raise AnalysisError(f"Failed to find subset duplicates: {e}")
 
+    def get_sorted_subset_duplicates(self) -> list[tuple[str, str, float]]:
+        """
+        Get subset duplicates sorted by coverage ratio (highest first).
+
+        Returns:
+            List of (subset_test, superset_test, coverage_ratio) tuples sorted by ratio
+        """
+        subsets = self.find_subset_duplicates()
+        return sorted(subsets, key=lambda x: x[2], reverse=True)
+
+    def get_duplicate_count(self) -> int:
+        """
+        Get the total number of duplicate tests that can be removed.
+
+        Returns:
+            Number of tests that are exact duplicates (excluding one to keep per group)
+        """
+        exact_dups = self.find_exact_duplicates()
+        return sum(len(g) - 1 for g in exact_dups)
+
+    def get_statistics(self, threshold: float = 0.3) -> dict:
+        """
+        Get comprehensive statistics about test duplication.
+
+        Args:
+            threshold: Similarity threshold for analysis (default: 0.3)
+
+        Returns:
+            Dictionary with all statistics
+        """
+        exact = self.find_exact_duplicates()
+        subsets = self.find_subset_duplicates()
+        similar = self.find_similar_coverage(threshold)
+
+        return {
+            'total_tests': len(self.tests),
+            'exact_duplicate_groups': len(exact),
+            'exact_duplicate_count': sum(len(g) - 1 for g in exact),
+            'subset_duplicate_count': len(subsets),
+            'similar_pair_count': len(similar),
+            'total_removable_duplicates': sum(len(g) - 1 for g in exact) + len(subsets),
+            'threshold': threshold
+        }
+
     def find_similar_coverage(self, threshold: float = 0.8) -> list[tuple[str, str, float]]:
         """
         Find tests with similar (but not identical) coverage using Jaccard similarity.
@@ -228,14 +272,29 @@ class CoverageDuplicateFinder:
             logger.error(f"Error finding similar coverage: {e}")
             raise AnalysisError(f"Failed to find similar coverage: {e}")
 
-    def generate_report(self) -> str:
-        """Generate a comprehensive duplicate report."""
+    def generate_report(self, threshold: float = 0.3) -> str:
+        """
+        Generate a comprehensive duplicate report.
+
+        Args:
+            threshold: Similarity threshold for analysis (default: 0.3 = 30%)
+
+        Returns:
+            Markdown formatted report
+        """
+        from testiq import __version__
+        from datetime import datetime
+
         report_lines = ["# Test Duplication Report\n"]
+        report_lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report_lines.append(f"**TestIQ Version:** {__version__}")
+        report_lines.append(f"**Similarity Threshold:** {threshold:.1%}\n")
 
         # Exact duplicates
         exact_dups = self.find_exact_duplicates()
+        duplicate_count = self.get_duplicate_count()
         report_lines.append("## Exact Duplicates (Identical Coverage)\n")
-        report_lines.append(f"Found {len(exact_dups)} groups of tests with identical coverage:\n")
+        report_lines.append(f"Found {len(exact_dups)} groups with {duplicate_count} duplicate tests:\n")
 
         for i, group in enumerate(exact_dups, 1):
             report_lines.append(f"\n### Group {i} ({len(group)} tests):")
@@ -245,31 +304,37 @@ class CoverageDuplicateFinder:
                 f"\n  **Action**: Keep one test, remove {len(group) - 1} duplicates\n"
             )
 
-        # Subset duplicates
-        subsets = self.find_subset_duplicates()
+        # Subset duplicates (sorted by coverage ratio)
+        subsets = self.get_sorted_subset_duplicates()
         report_lines.append("\n## Subset Duplicates\n")
-        report_lines.append(f"Found {len(subsets)} tests that are subsets of others:\n")
+        report_lines.append(f"Found {len(subsets)} tests that are subsets of others (showing top 20 by coverage ratio):\n")
 
-        for subset_test, superset_test, ratio in subsets[:10]:  # Top 10
+        for subset_test, superset_test, ratio in subsets[:20]:  # Top 20
             report_lines.append(
                 f"\n  - `{subset_test}` is {ratio:.1%} covered by `{superset_test}`"
             )
             report_lines.append("    **Action**: Consider removing if no unique edge cases\n")
 
-        # Similar coverage
-        similar = self.find_similar_coverage(threshold=0.7)
-        report_lines.append("\n## Similar Coverage (70%+ overlap)\n")
-        report_lines.append(f"Found {len(similar)} test pairs with significant overlap:\n")
+        if len(subsets) > 20:
+            report_lines.append(f"\n  ... and {len(subsets) - 20} more subset duplicates\n")
 
-        for test1, test2, similarity in similar[:10]:  # Top 10
+        # Similar coverage
+        similar = self.find_similar_coverage(threshold)
+        report_lines.append(f"\n## Similar Tests (≥{threshold:.0%} overlap)\n")
+        report_lines.append(f"Found {len(similar)} test pairs with ≥{threshold:.0%} similarity (showing top 20):\n")
+
+        for test1, test2, similarity in similar[:20]:  # Top 20
             report_lines.append(f"\n  - `{test1}` ↔ `{test2}`: {similarity:.1%} similar")
             report_lines.append("    **Action**: Review for potential merge or refactoring\n")
+
+        if len(similar) > 20:
+            report_lines.append(f"\n  ... and {len(similar) - 20} more similar test pairs\n")
 
         # Summary statistics
         report_lines.append("\n## Summary\n")
         report_lines.append(f"- Total tests analyzed: {len(self.tests)}")
         report_lines.append(
-            f"- Exact duplicates: {sum(len(g) - 1 for g in exact_dups)} tests can be removed"
+            f"- Exact duplicates: {duplicate_count} tests can be removed"
         )
         report_lines.append(f"- Subset duplicates: {len(subsets)} tests may be redundant")
         report_lines.append(f"- Similar tests: {len(similar)} pairs need review")

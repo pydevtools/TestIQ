@@ -4,7 +4,7 @@ Tests for analysis module (quality scoring and recommendations).
 
 import pytest
 
-from testiq.analysis import QualityAnalyzer, RecommendationEngine, TestQualityScore
+from testiq.analysis import QualityAnalyzer, RecommendationEngine, QualityScore
 from testiq.analyzer import CoverageDuplicateFinder
 
 
@@ -57,12 +57,12 @@ def medium_quality_finder():
     return finder
 
 
-class TestTestQualityScore:
-    """Tests for TestQualityScore dataclass."""
+class TestQualityScoreClass:
+    """Tests for QualityScore dataclass."""
 
     def test_score_initialization(self):
         """Test creating a quality score."""
-        score = TestQualityScore(
+        score = QualityScore(
             overall_score=85.0,
             duplication_score=90.0,
             coverage_efficiency_score=80.0,
@@ -76,7 +76,7 @@ class TestTestQualityScore:
 
     def test_score_perfect(self):
         """Test perfect quality score."""
-        score = TestQualityScore(
+        score = QualityScore(
             overall_score=100.0,
             duplication_score=100.0,
             coverage_efficiency_score=100.0,

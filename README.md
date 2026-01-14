@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/testiq-dev/testiq)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Test Coverage](https://img.shields.io/badge/coverage-81%25-brightgreen.svg)](htmlcov/index.html)
-[![Tests](https://img.shields.io/badge/tests-243%2F243%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-190%2F190%20passing-brightgreen.svg)](tests/)
 [![Quality](https://img.shields.io/badge/quality-A%2B%20(99.9%2F100)-brightgreen.svg)](reports/duplicates.html)
 
 **TestIQ v0.2.0** - An enterprise-grade Python library that analyzes test coverage to identify duplicate, redundant, and inefficient tests. Save time, reduce CI costs, and improve test suite quality with intelligent analysis.
@@ -128,7 +128,7 @@ testiq demo
 # Basic analysis with terminal output (text format)
 testiq analyze testiq_coverage.json
 
-# With custom similarity threshold (default: 0.7)
+# With custom similarity threshold (default: 0.3)
 testiq analyze testiq_coverage.json --threshold 0.8
 
 # Generate beautiful HTML report

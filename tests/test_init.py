@@ -24,14 +24,14 @@ class TestPackageInit:
         assert hasattr(testiq, "CoverageDuplicateFinder")
         assert "CoverageDuplicateFinder" in testiq.__all__
 
-    def test_exports_test_coverage(self):
-        """Test that TestCoverage is exported."""
-        assert hasattr(testiq, "TestCoverage")
-        assert "TestCoverage" in testiq.__all__
+    def test_exports_coverage_data(self):
+        """Test that CoverageData is exported."""
+        assert hasattr(testiq, "CoverageData")
+        assert "CoverageData" in testiq.__all__
 
     def test_all_list_complete(self):
         """Test that __all__ contains expected exports."""
-        expected = {"CoverageDuplicateFinder", "TestCoverage", "__version__"}
+        expected = {"CoverageDuplicateFinder", "CoverageData", "__version__"}
         actual = set(testiq.__all__)
         assert expected == actual
 
@@ -40,11 +40,11 @@ class TestPackageInit:
         finder = testiq.CoverageDuplicateFinder()
         assert finder is not None
 
-    def test_can_instantiate_test_coverage(self):
-        """Test that we can instantiate TestCoverage from package."""
-        test_cov = testiq.TestCoverage(
+    def test_can_instantiate_coverage_data(self):
+        """Test that we can instantiate CoverageData from package."""
+        test_cov = testiq.CoverageData(
             test_name="test_example",
-            covered_lines={"file.py": [1, 2, 3]}
+            covered_lines={("file.py", 1), ("file.py", 2), ("file.py", 3)}
         )
         assert test_cov is not None
         assert test_cov.test_name == "test_example"

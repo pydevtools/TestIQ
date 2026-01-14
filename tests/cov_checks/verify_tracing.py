@@ -30,7 +30,7 @@ def analyze_coverage_completeness():
         print("📊 Coverage Run (--cov only):")
         print(f"   ✓ Files traced: {total_files}")
         print(f"   ✓ Total lines executed: {total_lines}")
-        print(f"   ✓ Tracer: coverage.py (uninterrupted)")
+        print("   ✓ Tracer: coverage.py (uninterrupted)")
         print()
     
     # Check if testiq_coverage.json exists (from --testiq-output run)
@@ -50,7 +50,7 @@ def analyze_coverage_completeness():
         print(f"   ✓ Tests traced: {total_tests}")
         print(f"   ✓ Files covered: {len(all_files)}")
         print(f"   ✓ Total line executions: {all_lines:,}")
-        print(f"   ✓ Tracer: TestIQ (uninterrupted)")
+        print("   ✓ Tracer: TestIQ (uninterrupted)")
         print()
     
     print("═══════════════════════════════════════════════════════════════")

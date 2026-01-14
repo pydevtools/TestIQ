@@ -53,13 +53,13 @@ class PerformanceConfig:
 class AnalysisConfig:
     """Analysis configuration."""
 
-    similarity_threshold: float = 0.7
+    similarity_threshold: float = 0.3
     min_coverage_lines: int = 1
     max_results: int = 1000
 
 
 @dataclass
-class TestIQConfig:
+class Config:
     """Main TestIQ configuration."""
 
     log: LogConfig = field(default_factory=LogConfig)
@@ -68,7 +68,7 @@ class TestIQConfig:
     analysis: AnalysisConfig = field(default_factory=AnalysisConfig)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TestIQConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "Config":
         """Create config from dictionary."""
         return cls(
             log=LogConfig(**data.get("log", {})),
@@ -228,7 +228,7 @@ def load_config_from_env() -> dict[str, Any]:
     return config
 
 
-def load_config(config_path: Optional[Path] = None) -> TestIQConfig:
+def load_config(config_path: Optional[Path] = None) -> Config:
     """
     Load configuration from file and environment.
 
@@ -260,7 +260,7 @@ def load_config(config_path: Optional[Path] = None) -> TestIQConfig:
     config_data = _deep_merge(config_data, env_config)
 
     # 4. Create config with defaults
-    return TestIQConfig.from_dict(config_data)
+    return Config.from_dict(config_data)
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

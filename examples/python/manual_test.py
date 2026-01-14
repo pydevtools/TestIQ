@@ -198,9 +198,9 @@ print("\n" + "=" * 60)
 print("TEST 8: Configuration System")
 print("=" * 60)
 
-from testiq.config import TestIQConfig, load_config
+from testiq.config import Config, load_config
 
-config = TestIQConfig()
+config = Config()
 print(f"\n✓ Default log level: {config.log.level}")
 print(f"✓ Max file size: {config.security.max_file_size / 1024 / 1024:.0f}MB")
 print(f"✓ Parallel processing: {config.performance.enable_parallel}")
