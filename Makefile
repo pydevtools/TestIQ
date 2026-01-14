@@ -5,18 +5,20 @@
 help:
 	@echo "TestIQ - Development Commands"
 	@echo ""
-	@echo "install     - Install package with dev dependencies"
-	@echo "test        - Run tests with coverage"
-	@echo "test-fast   - Run tests without coverage"
-	@echo "lint        - Run ruff linter"
-	@echo "format      - Format code with black and ruff"
-	@echo "format-check- Check code formatting"
-	@echo "clean       - Remove build artifacts and cache files"
-	@echo "build       - Build distribution packages"
-	@echo "publish-test- Publish to TestPyPI"
-	@echo "publish     - Publish to PyPI"
-	@echo "demo        - Run TestIQ demo"
-	@echo "dev         - Install in development mode"
+	@echo "install      - Install package with dev dependencies"
+	@echo "test         - Run tests with coverage"
+	@echo "test-fast    - Run tests without coverage"
+	@echo "test-complete- Run complete analysis (coverage + duplicates)"
+	@echo "test-dup     - Find duplicate tests only"
+	@echo "lint         - Run ruff linter"
+	@echo "format       - Format code with black and ruff"
+	@echo "format-check - Check code formatting"
+	@echo "clean        - Remove build artifacts and cache files"
+	@echo "build        - Build distribution packages"
+	@echo "publish-test - Publish to TestPyPI"
+	@echo "publish      - Publish to PyPI"
+	@echo "demo         - Run TestIQ demo"
+	@echo "dev          - Install in development mode"
 
 install:
 	uv pip install --system -e ".[dev]"
@@ -28,6 +30,16 @@ test:
 
 test-fast:
 	pytest tests/ -v
+
+test-complete:
+	@echo "Running complete analysis (coverage + duplicate detection)..."
+	./run_complete_analysis.sh tests/
+
+test-dup:
+	@echo "Running duplicate test detection..."
+	pytest tests/ --testiq-output=testiq_coverage.json -q
+	testiq analyze testiq_coverage.json --format html --output reports/duplicates.html
+	testiq quality-score testiq_coverage.json
 
 lint:
 	ruff check src/ tests/

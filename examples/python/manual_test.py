@@ -9,6 +9,11 @@ This example demonstrates all major features of TestIQ including:
 - CI/CD features (quality gates, baselines)
 - Plugin system
 - Configuration and security
+
+Note: This example uses sample test data. In production, you would:
+1. Run pytest with --testiq-output flag to generate real coverage data
+2. Or use coverage.py with --cov-context=test
+3. Then analyze the generated JSON file
 """
 
 import json
@@ -23,6 +28,10 @@ sys.path.insert(0, str(parent_dir / "src"))
 reports_dir = parent_dir / "reports"
 reports_dir.mkdir(exist_ok=True)
 
+# Constants for sample data (following TestIQ's best practices)
+SAMPLE_AUTH_FILE = "auth.py"
+SAMPLE_USER_FILE = "user.py"
+
 # Test 1: Basic usage
 print("=" * 60)
 print("TEST 1: Basic CoverageDuplicateFinder")
@@ -34,17 +43,17 @@ finder = CoverageDuplicateFinder()
 
 # Add some test data
 finder.add_test_coverage("test_login_1", {
-    "auth.py": [10, 11, 12, 15, 20],
-    "user.py": [5, 6, 7]
+    SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20],
+    SAMPLE_USER_FILE: [5, 6, 7]
 })
 
 finder.add_test_coverage("test_login_2", {
-    "auth.py": [10, 11, 12, 15, 20],
-    "user.py": [5, 6, 7]
+    SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20],
+    SAMPLE_USER_FILE: [5, 6, 7]
 })
 
 finder.add_test_coverage("test_login_minimal", {
-    "auth.py": [10, 11, 12]
+    SAMPLE_AUTH_FILE: [10, 11, 12]
 })
 
 # Find duplicates
@@ -212,11 +221,11 @@ try:
     
     # Check size
     check_file_size(path)
-    print(f"✓ File size check passed")
+    print("✓ File size check passed")
     
     # Validate coverage data
     validate_coverage_data(coverage_data)
-    print(f"✓ Coverage data validation passed")
+    print("✓ Coverage data validation passed")
     
 except Exception as e:
     print(f"✗ Validation error: {e}")

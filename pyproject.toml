@@ -1,6 +1,6 @@
 [project]
 name = "testiq"
-version = "0.1.0"
+version = "0.2.0"
 description = "Intelligent test analysis - Find duplicate and redundant tests using coverage analysis"
 readme = "README.md"
 authors = [
@@ -13,6 +13,7 @@ dependencies = [
     "rich>=13.7.0",
     "pyyaml>=6.0.1",
     "tomli>=2.0.1; python_version < '3.11'",
+    "pytest>=7.4.0",
 ]
 keywords = ["testing", "test-automation", "coverage", "duplicate-detection", "test-quality", "ci-cd"]
 classifiers = [
@@ -47,6 +48,8 @@ dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
     "mypy>=1.7.0",
+    "types-click>=8.1.0",
+    "types-pyyaml>=6.0.0",
 ]
 
 [build-system]
@@ -91,4 +94,6 @@ disallow_untyped_defs = true
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--cov=testiq --cov-report=term-missing --cov-report=html"
+# Note: Coverage is disabled by default to avoid interference with --testiq-output
+# To measure coverage, explicitly run: pytest --cov=src/testiq --cov-report=term
+# addopts = "--cov=testiq --cov-report=term-missing --cov-report=html"

@@ -8,10 +8,19 @@ This script demonstrates:
 3. Generating reports
 
 Requirements:
-    pip install testiq pytest
+    pip install testiq
+    
+Note: pytest is now included as a dependency of testiq, so no need
+to install it separately!
 
 Usage:
     python examples/python/pytest_plugin_example.py
+    
+Key Features Demonstrated:
+- Automatic per-test coverage tracking via pytest plugin
+- Quality scoring with latest improvements
+- HTML report generation with enhanced styling
+- Cognitive complexity improvements in analysis engine
 """
 
 import json
@@ -109,7 +118,7 @@ def main():
         print(f"✓ HTML report generated: {html_report}")
         print(f"  Open with: open {html_report}")
     else:
-        print(f"❌ Failed to generate HTML report")
+        print("❌ Failed to generate HTML report")
         print(result.stdout)
 
     print()

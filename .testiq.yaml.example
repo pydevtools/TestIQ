@@ -1,5 +1,9 @@
-# TestIQ Configuration File Example
+# TestIQ Configuration File Example (YAML format)
 # Save as .testiq.yaml in your project root
+#
+# This configuration demonstrates all available options.
+# Latest features: Enhanced security, better performance tuning,
+# and improved code quality with reduced cognitive complexity.
 
 # Logging configuration
 log:

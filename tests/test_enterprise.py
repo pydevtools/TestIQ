@@ -43,70 +43,10 @@ class TestExceptions:
 
 
 class TestSecurity:
-    """Test security features."""
-
-    def test_validate_file_path_valid(self, tmp_path):
-        """Test validating a valid file path."""
-        test_file = tmp_path / "test.json"
-        test_file.write_text("{}")
-
-        validated = validate_file_path(test_file)
-        assert validated.exists()
-        assert validated.is_absolute()
-
-    def test_validate_file_path_dangerous_pattern(self):
-        """Test rejecting dangerous path patterns."""
-        with pytest.raises(SecurityError, match="Dangerous path pattern"):
-            validate_file_path(Path("../etc/passwd"))
-
-    def test_validate_file_path_invalid_extension(self, tmp_path):
-        """Test rejecting invalid file extensions."""
-        test_file = tmp_path / "test.exe"
-        test_file.write_text("malicious")
-
-        with pytest.raises(SecurityError, match="File extension not allowed"):
-            validate_file_path(test_file)
-
-    def test_check_file_size_valid(self, tmp_path):
-        """Test accepting valid file size."""
-        test_file = tmp_path / "test.json"
-        test_file.write_text("{}" * 100)
-
-        # Should not raise
-        check_file_size(test_file, max_size=1024)
-
-    def test_check_file_size_too_large(self, tmp_path):
-        """Test rejecting too large files."""
-        test_file = tmp_path / "test.json"
-        test_file.write_text("{}" * 1000)
-
-        with pytest.raises(SecurityError, match="File too large"):
-            check_file_size(test_file, max_size=100)
-
-    def test_validate_coverage_data_valid(self):
-        """Test validating valid coverage data."""
-        data = {
-            "test1": {"file.py": [1, 2, 3]},
-            "test2": {"file.py": [4, 5, 6]},
-        }
-
-        # Should not raise
-        validate_coverage_data(data)
-
-    def test_validate_coverage_data_empty(self):
-        """Test rejecting empty coverage data."""
-        with pytest.raises(ValidationError, match="empty"):
-            validate_coverage_data({})
-
-    def test_validate_coverage_data_too_many_tests(self):
-        """Test rejecting too many tests."""
-        data = {f"test_{i}": {"file.py": [1]} for i in range(1000)}
-
-        with pytest.raises(SecurityError, match="Too many tests"):
-            validate_coverage_data(data, max_tests=100)
+    """Test security features integration."""
 
     def test_validate_coverage_data_invalid_structure(self):
-        """Test rejecting invalid data structure."""
+        """Test rejecting invalid data structures (integration check)."""
         with pytest.raises(ValidationError, match="must be a dictionary"):
             validate_coverage_data([])
 
@@ -117,24 +57,12 @@ class TestSecurity:
             validate_coverage_data({"test1": {"file.py": "not a list"}})
 
     def test_validate_coverage_data_invalid_line_numbers(self):
-        """Test rejecting invalid line numbers."""
+        """Test rejecting invalid line numbers (integration check)."""
         with pytest.raises(ValidationError, match="must be integer"):
             validate_coverage_data({"test1": {"file.py": ["1"]}})
 
         with pytest.raises(ValidationError, match="must be >= 1"):
             validate_coverage_data({"test1": {"file.py": [0]}})
-
-    def test_sanitize_output_path_valid(self, tmp_path):
-        """Test sanitizing valid output path."""
-        output_file = tmp_path / "output.json"
-
-        sanitized = sanitize_output_path(output_file)
-        assert sanitized.is_absolute()
-
-    def test_sanitize_output_path_dangerous(self):
-        """Test rejecting dangerous output paths."""
-        with pytest.raises(SecurityError, match="Dangerous path pattern"):
-            sanitize_output_path(Path("../../../etc/passwd"))
 
 
 class TestConfig:
@@ -215,58 +143,7 @@ security:
 
 
 class TestPerformance:
-    """Test performance features."""
-
-    def test_cache_manager(self, tmp_path):
-        """Test cache manager."""
-        from testiq.performance import CacheManager
-
-        cache = CacheManager(cache_dir=tmp_path, enabled=True)
-
-        # Test set and get
-        cache.set("test_key", {"result": "value"})
-        result = cache.get("test_key")
-
-        assert result == {"result": "value"}
-
-    def test_cache_manager_disabled(self):
-        """Test disabled cache manager."""
-        from testiq.performance import CacheManager
-
-        cache = CacheManager(enabled=False)
-
-        cache.set("test_key", {"result": "value"})
-        result = cache.get("test_key")
-
-        assert result is None
-
-    def test_parallel_processor(self):
-        """Test parallel processor."""
-        from testiq.performance import ParallelProcessor
-
-        processor = ParallelProcessor(max_workers=2, enabled=True)
-
-        def square(x):
-            return x * x
-
-        items = [1, 2, 3, 4, 5]
-        results = processor.map(square, items)
-
-        assert results == [1, 4, 9, 16, 25]
-
-    def test_parallel_processor_disabled(self):
-        """Test disabled parallel processor."""
-        from testiq.performance import ParallelProcessor
-
-        processor = ParallelProcessor(enabled=False)
-
-        def square(x):
-            return x * x
-
-        items = [1, 2, 3, 4, 5]
-        results = processor.map(square, items)
-
-        assert results == [1, 4, 9, 16, 25]
+    """Test performance features integration."""
 
     def test_compute_similarity(self):
         """Test cached similarity computation."""

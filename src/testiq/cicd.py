@@ -309,7 +309,7 @@ class TrendTracker:
 
 
 def get_exit_code(
-    passed: bool, duplicate_count: int, total_tests: int
+    passed: bool, duplicate_count: int, _total_tests: int
 ) -> int:
     """
     Get appropriate exit code for CI/CD.
@@ -317,7 +317,7 @@ def get_exit_code(
     Args:
         passed: Whether quality gates passed
         duplicate_count: Number of duplicates found
-        total_tests: Total number of tests
+        _total_tests: Total number of tests (reserved for future use)
 
     Returns:
         Exit code (0=success, 1=duplicates found, 2=quality gate failed)

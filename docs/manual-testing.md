@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Covered by examples/python/manual_test.py -->
+
 # TestIQ Manual Testing Guide
 
 This guide shows you how to manually test all TestIQ features.

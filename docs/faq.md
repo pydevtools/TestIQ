@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Most content covered in main README and examples -->
+
 # Frequently Asked Questions
 
 ## General

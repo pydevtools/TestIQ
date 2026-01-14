@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Content covered by examples/ directory and CLI reference -->
+
 # TestIQ User Guide
 
 ## Table of Contents

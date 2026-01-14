@@ -7,6 +7,8 @@
 # - Publishing reports as artifacts
 # - Using baselines with GitLab CI cache
 # - Setting pipeline status based on quality gate results
+#
+# Note: pytest is now included as a TestIQ dependency!
 
 # GitLab CI variables
 variables:
@@ -35,7 +37,8 @@ test:coverage:
     - python -m venv venv
     - source venv/bin/activate
     - pip install --upgrade pip
-    - pip install pytest pytest-cov
+    # pytest is now included with testiq!
+    - pip install pytest-cov
     - pip install -r requirements.txt
   script:
     - echo "🧪 Running test suite with coverage..."

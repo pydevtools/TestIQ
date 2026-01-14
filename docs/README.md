@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Redundant documentation index - main README is sufficient -->
+
 # TestIQ Documentation
 
 Welcome to the TestIQ documentation! This directory contains comprehensive guides, API references, and resources for using TestIQ.
@@ -38,8 +41,8 @@ Welcome to the TestIQ documentation! This directory contains comprehensive guide
 
 ### Project Information
 - **[CHANGELOG](CHANGELOG.md)** - Version history and release notes
-  - v0.2.0 - Enterprise features (current)
-  - v0.1.0 - Initial release
+  - v0.2.0 - Code quality improvements, enhanced features (current)
+  - v0.1.0 - Initial release with enterprise features
 - **[Production Readiness](PRODUCTION_READINESS.md)** - Production deployment guide
   - Feature completeness status
   - Test coverage analysis

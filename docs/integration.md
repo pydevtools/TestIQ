@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Covered by examples/cicd/ directory with working examples -->
+
 # Integration Guide
 
 TestIQ works with any test framework that can produce per-test coverage data. This guide shows how to integrate TestIQ with popular testing frameworks.

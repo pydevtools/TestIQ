@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Installation is simple (pip install testiq) - doesn't need dedicated doc -->
+
 # Installation Guide
 
 ## Prerequisites

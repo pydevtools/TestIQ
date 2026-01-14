@@ -1,5 +1,9 @@
 # TestIQ Configuration File Example (TOML format)
 # Save as .testiq.toml in your project root
+#
+# This configuration demonstrates all available options.
+# Latest features: Enhanced security, better performance tuning,
+# and improved code quality with reduced cognitive complexity.
 
 [log]
 level = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL

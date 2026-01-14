@@ -81,11 +81,6 @@ class HTMLReportGenerator:
         """Generate HTML content."""
         total_tests = len(self.finder.tests)
         duplicate_count = sum(len(g) - 1 for g in exact_dups)
-
-        # Calculate statistics
-        duplicate_percentage = (
-            (duplicate_count / total_tests * 100) if total_tests > 0 else 0
-        )
         
         # Collect and read source files for the split-screen view
         source_reader = SourceCodeReader()
@@ -101,7 +96,6 @@ class HTMLReportGenerator:
         # Calculate total lines in all files
         total_lines_in_files = sum(len(lines) for lines in source_code_map.values())
         lines_covered = len(unique_lines_covered)
-        files_covered = len(all_files)
         
         coverage_percentage = (lines_covered / total_lines_in_files * 100) if total_lines_in_files > 0 else 0
         uncovered_percentage = 100 - coverage_percentage if total_lines_in_files > 0 else 0
@@ -571,14 +565,6 @@ class HTMLReportGenerator:
             <div class="stat-card warning" onclick="switchTab('subset')">
                 <div class="stat-value">{len(subset_dups)}</div>
                 <div class="stat-label">Subset Duplicates</div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-value">{coverage_percentage:.1f}%</div>
-                <div class="stat-label">Lines Covered</div>
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-value">{uncovered_percentage:.1f}%</div>
-                <div class="stat-label">Lines Uncovered</div>
             </div>
         </div>
 

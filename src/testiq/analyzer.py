@@ -19,6 +19,9 @@ from testiq.performance import (
 
 logger = get_logger(__name__)
 
+# Constants
+NO_TESTS_WARNING = "No tests to analyze"
+
 
 @dataclass
 class TestCoverage:
@@ -107,7 +110,7 @@ class CoverageDuplicateFinder:
             AnalysisError: If analysis fails
         """
         if not self.tests:
-            logger.warning("No tests to analyze")
+            logger.warning(NO_TESTS_WARNING)
             return []
 
         logger.info(f"Finding exact duplicates among {len(self.tests)} tests")
@@ -142,7 +145,7 @@ class CoverageDuplicateFinder:
             AnalysisError: If analysis fails
         """
         if not self.tests:
-            logger.warning("No tests to analyze")
+            logger.warning(NO_TESTS_WARNING)
             return []
 
         logger.info(f"Finding subset duplicates among {len(self.tests)} tests")
@@ -193,7 +196,7 @@ class CoverageDuplicateFinder:
             raise ValidationError(f"Threshold must be between 0.0 and 1.0, got {threshold}")
 
         if not self.tests:
-            logger.warning("No tests to analyze")
+            logger.warning(NO_TESTS_WARNING)
             return []
 
         logger.info(f"Finding similar tests (threshold={threshold}) among {len(self.tests)} tests")

@@ -2,6 +2,15 @@
 
 This directory contains comprehensive examples demonstrating how to use TestIQ in different scenarios.
 
+## 🆕 What's New in Latest Version
+
+- **Enhanced Code Quality**: Reduced cognitive complexity in analysis engine for better maintainability
+- **Improved Constants Management**: String literals extracted to constants following best practices
+- **Better Type Support**: Added type stubs for click and PyYAML for enhanced IDE autocomplete
+- **pytest Now Included**: No need to install pytest separately - it's now a core dependency!
+- **Refined Error Handling**: Unused parameters properly marked, unused variables removed
+- **Cleaner Code**: F-strings without placeholders fixed, nested conditionals simplified
+
 ## 📁 Directory Structure
 
 ```
@@ -35,13 +44,19 @@ python manual_test.py
 
 **What it does:**
 - ✅ Demonstrates exact, subset, and similarity duplicate detection
-- ✅ Shows quality scoring and recommendation generation
-- ✅ Generates HTML, CSV, and Markdown reports
+- ✅ Shows quality scoring with refactored recommendation engine
+- ✅ Generates HTML, CSV, and Markdown reports (with improved styling)
 - ✅ Demonstrates CI/CD features (quality gates, baselines)
 - ✅ Shows plugin system usage
 - ✅ Validates security features
+- ✅ Uses constants following TestIQ best practices
 
 **Generated outputs:** `reports/test_report.html`, `reports/test_report.csv`, `reports/test_report.md`
+
+**Latest improvements:**
+- Uses string constants to avoid duplication
+- Demonstrates improved code organization
+- Shows proper error handling patterns
 
 ### Run Pytest Plugin Example ✨ NEW
 
@@ -51,6 +66,7 @@ Demonstrates using the TestIQ pytest plugin to generate per-test coverage data.
 # From project root
 python examples/python/pytest_plugin_example.py
 ```
+- ✅ **Note**: pytest is now included with testiq installation!
 
 **What it does:**
 - ✅ Runs pytest with `--testiq-output` flag
@@ -75,11 +91,16 @@ cd examples/bash
 
 **What it tests:**
 1. Demo command
-2. Basic analysis
-3. Quality scoring
-4. HTML report generation
+2. Basic analysis (with improved recommendation engine)
+4. HTML report generation (with enhanced styling)
 5. Quality gate checking
 6. Baseline management
+7. Python API integration
+
+**Latest features tested:**
+- Enhanced error handling
+- Improved code quality checks
+- Better performance with caching
 7. Python API integration
 
 ## 🔧 CI/CD Integration Examples

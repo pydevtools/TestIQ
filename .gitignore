@@ -27,13 +27,16 @@ coverage.xml
 *.json
 !examples/**/*.json
 reports/*.html
-!reports/test_report.html
+reports/*.csv
+reports/*.md
+!reports/README.md
 
 # Temporary test files
 test_*.py
 !tests/test_*.py
 enhance_*.py
 *_enhanced.py
+*.backup
 
 # IDEs and editors
 .vscode/

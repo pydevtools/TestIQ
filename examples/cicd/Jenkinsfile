@@ -6,6 +6,8 @@
 // - Handling failures and setting build status
 // - Archiving reports and publishing results
 // - Using baselines for trend tracking
+//
+// Note: pytest is now included as a TestIQ dependency!
 
 pipeline {
     agent any

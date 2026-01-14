@@ -6,6 +6,12 @@
 #   ./quick_test.sh
 # Or from project root:
 #   bash examples/bash/quick_test.sh
+#
+# Latest Features Tested:
+# - Enhanced quality scoring with refactored recommendation engine
+# - Improved code quality (reduced cognitive complexity)
+# - Better constant management and maintainability
+# - pytest integration (now included in dependencies)
 
 set -e  # Exit on error
 

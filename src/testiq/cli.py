@@ -33,6 +33,22 @@ from testiq.security import (
 console = Console()
 logger = get_logger(__name__)
 
+# Constants
+TESTIQ_CONFIG_DIR = ".testiq"
+SAMPLE_AUTH_FILE = "auth.py"
+SAMPLE_USER_FILE = "user.py"
+
+
+def _get_grade_color(grade: str) -> str:
+    """Get the color for a grade letter."""
+    first_letter = grade[0] if grade else 'F'
+    if first_letter == 'A':
+        return 'green'
+    elif first_letter in ('B', 'C'):
+        return 'yellow'
+    else:
+        return 'red'
+
 
 @click.group()
 @click.version_option(version=__version__, prog_name="testiq")
@@ -197,7 +213,7 @@ def analyze(
             # Load baseline if provided
             baseline_result = None
             if baseline:
-                baseline_mgr = BaselineManager(Path.home() / ".testiq" / "baselines")
+                baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
                 baseline_result = baseline_mgr.load(baseline.stem)
 
             passed, details = checker.check(finder, threshold, baseline_result)
@@ -229,7 +245,7 @@ def analyze(
                 threshold=threshold,
             )
 
-            baseline_mgr = BaselineManager(Path.home() / ".testiq" / "baselines")
+            baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
             baseline_mgr.save(result, save_baseline.stem)
             console.print(f"[green]✓ Baseline saved: {save_baseline}[/green]")
 
@@ -378,28 +394,28 @@ def demo() -> None:
     # Add sample test data
     finder.add_test_coverage(
         "test_user_login_success_1",
-        {"auth.py": [10, 11, 12, 15, 20, 25], "user.py": [5, 6, 7]},
+        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
     )
 
     finder.add_test_coverage(
         "test_user_login_success_2",
-        {"auth.py": [10, 11, 12, 15, 20, 25], "user.py": [5, 6, 7]},
+        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
     )
 
-    finder.add_test_coverage("test_user_login_minimal", {"auth.py": [10, 11, 12]})
+    finder.add_test_coverage("test_user_login_minimal", {SAMPLE_AUTH_FILE: [10, 11, 12]})
 
     finder.add_test_coverage(
         "test_user_login_complete",
         {
-            "auth.py": [10, 11, 12, 15, 20, 25, 30, 35],
-            "user.py": [5, 6, 7],
+            SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25, 30, 35],
+            SAMPLE_USER_FILE: [5, 6, 7],
             "db.py": [100, 101],
         },
     )
 
     finder.add_test_coverage(
         "test_admin_login",
-        {"auth.py": [10, 11, 12, 15, 20, 25, 40], "user.py": [5, 6, 7], "admin.py": [50]},
+        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25, 40], SAMPLE_USER_FILE: [5, 6, 7], "admin.py": [50]},
     )
 
     finder.add_test_coverage(
@@ -468,11 +484,12 @@ def quality_score(
         score = analyzer.calculate_score(threshold)
 
         # Display score with rich formatting
+        grade_color = _get_grade_color(score.grade)
         console.print(
             Panel(
                 f"[bold cyan]Test Quality Score[/bold cyan]\n\n"
                 f"Overall Score: [bold yellow]{score.overall_score:.1f}/100[/bold yellow]\n"
-                f"Grade: [bold {'green' if score.grade[0] == 'A' else 'yellow' if score.grade[0] == 'B' else 'red'}]{score.grade}[/bold]\n\n"
+                f"Grade: [bold][{grade_color}]{score.grade}[/{grade_color}][/bold]\n\n"
                 f"Duplication Score: {score.duplication_score:.1f}/100\n"
                 f"Coverage Efficiency: {score.coverage_efficiency_score:.1f}/100\n"
                 f"Uniqueness Score: {score.uniqueness_score:.1f}/100",
@@ -526,7 +543,7 @@ def baseline() -> None:
 @baseline.command(name="list")
 def baseline_list() -> None:
     """List all saved baselines."""
-    baseline_mgr = BaselineManager(Path.home() / ".testiq" / "baselines")
+    baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
     baselines = baseline_mgr.list_baselines()
 
     if not baselines:
@@ -554,7 +571,7 @@ def baseline_list() -> None:
 @click.argument("name")
 def baseline_show(name: str) -> None:
     """Show details of a specific baseline."""
-    baseline_mgr = BaselineManager(Path.home() / ".testiq" / "baselines")
+    baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
     result = baseline_mgr.load(name)
 
     if not result:
@@ -582,12 +599,11 @@ def baseline_show(name: str) -> None:
 @click.option("--force", "-f", is_flag=True, help="Don't ask for confirmation")
 def baseline_delete(name: str, force: bool) -> None:
     """Delete a baseline."""
-    if not force:
-        if not click.confirm(f"Delete baseline '{name}'?"):
-            console.print("[yellow]Cancelled[/yellow]")
-            return
+    if not force and not click.confirm(f"Delete baseline '{name}'?"):
+        console.print("[yellow]Cancelled[/yellow]")
+        return
 
-    baseline_mgr = BaselineManager(Path.home() / ".testiq" / "baselines")
+    baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
     baseline_dir = baseline_mgr.baseline_dir / f"{name}.json"
 
     if baseline_dir.exists():

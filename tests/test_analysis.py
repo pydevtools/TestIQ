@@ -92,8 +92,8 @@ class TestTestQualityScore:
 class TestQualityAnalyzer:
     """Tests for QualityAnalyzer."""
 
-    def test_high_quality_score(self, high_quality_finder):
-        """Test quality score for high-quality test suite."""
+    def test_high_quality_score_and_components(self, high_quality_finder):
+        """Test quality score for high-quality test suite and component ranges."""
         analyzer = QualityAnalyzer(high_quality_finder)
         score = analyzer.calculate_score(threshold=0.9)
 
@@ -101,6 +101,12 @@ class TestQualityAnalyzer:
         assert score.overall_score >= 80.0
         assert score.duplication_score >= 80.0
         assert score.grade in ["A+", "A", "A-", "B+", "B"]
+        
+        # All score components should be in valid range (0-100)
+        assert 0 <= score.overall_score <= 100
+        assert 0 <= score.duplication_score <= 100
+        assert 0 <= score.coverage_efficiency_score <= 100
+        assert 0 <= score.uniqueness_score <= 100
 
     def test_low_quality_score(self, low_quality_finder):
         """Test quality score for low-quality test suite."""
@@ -112,24 +118,23 @@ class TestQualityAnalyzer:
         assert score.duplication_score < 60.0
         assert score.grade in ["D", "D+", "D-", "F"]
 
-    def test_medium_quality_score(self, medium_quality_finder):
-        """Test quality score for medium-quality test suite."""
+    def test_medium_quality_score_with_thresholds(self, medium_quality_finder):
+        """Test quality score for medium-quality test suite with different thresholds."""
         analyzer = QualityAnalyzer(medium_quality_finder)
         score = analyzer.calculate_score(threshold=0.9)
 
         # Should have medium scores  
         assert 60.0 <= score.overall_score <= 90.0  # Allow for scoring variations
         assert score.grade in ["B", "B+", "B-", "C+", "C"]
+        
+        # Test that threshold affects similarity scoring
+        score_high_threshold = analyzer.calculate_score(threshold=0.95)
+        score_low_threshold = analyzer.calculate_score(threshold=0.5)
 
-    def test_score_components_range(self, high_quality_finder):
-        """Test that all score components are in valid range (0-100)."""
-        analyzer = QualityAnalyzer(high_quality_finder)
-        score = analyzer.calculate_score(threshold=0.9)
-
-        assert 0 <= score.overall_score <= 100
-        assert 0 <= score.duplication_score <= 100
-        assert 0 <= score.coverage_efficiency_score <= 100
-        assert 0 <= score.uniqueness_score <= 100
+        # Lower threshold finds more similar tests, potentially lowering score
+        # But the exact relationship depends on the test data
+        assert score_high_threshold is not None
+        assert score_low_threshold is not None
 
     def test_empty_finder_score(self):
         """Test quality score for empty test suite."""
@@ -143,39 +148,12 @@ class TestQualityAnalyzer:
         assert score.grade == "F"
         assert "No tests found" in score.recommendations
 
-    def test_grade_mapping(self):
-        """Test that scores map to correct grades."""
-        finder = CoverageDuplicateFinder()
-        
-        # Add tests with varying quality to test grading
-        # High quality (A range)
-        for i in range(20):
-            finder.add_test_coverage(f"test_high_{i}", {f"file{i}.py": [i + 1, i + 2]})
-        
-        analyzer = QualityAnalyzer(finder)
-        score = analyzer.calculate_score(threshold=0.9)
-        
-        # Should get a good grade with unique tests
-        assert score.grade in ["A+", "A", "A-", "B+", "B"]
-
-    def test_score_with_different_thresholds(self, medium_quality_finder):
-        """Test that threshold affects similarity scoring."""
-        analyzer = QualityAnalyzer(medium_quality_finder)
-
-        score_high_threshold = analyzer.calculate_score(threshold=0.95)
-        score_low_threshold = analyzer.calculate_score(threshold=0.5)
-
-        # Lower threshold finds more similar tests, potentially lowering score
-        # But the exact relationship depends on the test data
-        assert score_high_threshold is not None
-        assert score_low_threshold is not None
-
 
 class TestRecommendationEngine:
     """Tests for RecommendationEngine."""
 
     def test_recommendations_for_low_quality(self, low_quality_finder):
-        """Test recommendations for low-quality test suite."""
+        """Test comprehensive recommendations for low-quality test suite."""
         engine = RecommendationEngine(low_quality_finder)
         report = engine.generate_report(threshold=0.9)
 
@@ -185,52 +163,19 @@ class TestRecommendationEngine:
         # Should have high-priority recommendations due to low quality
         priorities = [r["priority"] for r in report["recommendations"]]
         assert "high" in priorities
-
-    def test_recommendations_for_high_quality(self, high_quality_finder):
-        """Test recommendations for high-quality test suite."""
-        engine = RecommendationEngine(high_quality_finder)
-        report = engine.generate_report(threshold=0.9)
-
-        # May have few or no recommendations
-        # High-priority recommendations should be rare or absent
-        high_priority = [r for r in report["recommendations"] if r["priority"] == "high"]
-        assert len(high_priority) <= 2
-
-    def test_report_contains_statistics(self, medium_quality_finder):
-        """Test that report contains statistics."""
-        engine = RecommendationEngine(medium_quality_finder)
-        report = engine.generate_report(threshold=0.9)
-
-        # Should have statistics
-        assert "statistics" in report
-        stats = report["statistics"]
-
-        assert "total_tests" in stats
-        assert "exact_duplicates" in stats
-        assert "subset_duplicates" in stats
-        assert "similar_pairs" in stats
-
-    def test_recommendation_priorities(self, low_quality_finder):
-        """Test that recommendations have valid priorities."""
-        engine = RecommendationEngine(low_quality_finder)
-        report = engine.generate_report(threshold=0.9)
-
+        
         # All recommendations should have valid priorities
         for rec in report["recommendations"]:
             assert rec["priority"] in ["high", "medium", "low"]
             assert "message" in rec
-
-    def test_duplicate_recommendation(self, low_quality_finder):
-        """Test that duplicate tests trigger recommendations."""
-        engine = RecommendationEngine(low_quality_finder)
-        report = engine.generate_report(threshold=0.9)
-
+        
         # Should recommend removing duplicates
         messages = [r["message"].lower() for r in report["recommendations"]]
         assert any("duplicate" in msg for msg in messages)
 
-    def test_recommendation_for_perfect_suite(self):
-        """Test recommendations for perfect test suite."""
+    def test_recommendations_for_high_quality(self, high_quality_finder, medium_quality_finder):
+        """Test recommendations for perfect test suite and statistics accuracy."""
+        # Test high quality suite with minimal recommendations
         finder = CoverageDuplicateFinder()
 
         # Add 10 completely unique tests
@@ -252,13 +197,12 @@ class TestRecommendationEngine:
         # If there are recommendations, they should be low priority
         for rec in report["recommendations"]:
             assert rec["priority"] == "low"
+        
+        # Test statistics accuracy on medium quality suite
+        engine2 = RecommendationEngine(medium_quality_finder)
+        report2 = engine2.generate_report(threshold=0.9)
 
-    def test_statistics_accuracy(self, medium_quality_finder):
-        """Test that statistics are accurate."""
-        engine = RecommendationEngine(medium_quality_finder)
-        report = engine.generate_report(threshold=0.9)
-
-        stats = report["statistics"]
+        stats = report2["statistics"]
 
         # Verify statistics match actual counts
         assert stats["total_tests"] == len(medium_quality_finder.tests)

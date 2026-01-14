@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Outdated - refers to v0.1.0 status, not relevant for v0.2.0 -->
+
 # TestIQ v0.2.0 - Production Readiness Status
 
 **Last Updated:** January 2024  

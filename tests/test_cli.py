@@ -54,17 +54,29 @@ class TestCLI:
         assert result.exit_code == 0
         assert "demo" in result.output.lower() or "Exact Duplicates" in result.output
 
-    def test_analyze_command(self, runner, sample_coverage_data):
-        """Test analyze command with valid data."""
+    def test_analyze_command_variations(self, runner, sample_coverage_data, tmp_path):
+        """Test analyze command with various options and configurations."""
+        # Test basic analyze command
         result = runner.invoke(main, ["analyze", str(sample_coverage_data)])
-
         assert result.exit_code == 0
 
-    def test_analyze_with_threshold(self, runner, sample_coverage_data):
-        """Test analyze command with custom threshold."""
+        # Test with custom threshold
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--threshold", "0.8"])
-
         assert result.exit_code == 0
+        
+        # Test with log level option
+        result = runner.invoke(main, ["--log-level", "DEBUG", "analyze", str(sample_coverage_data)])
+        assert result.exit_code == 0
+        
+        # Test text format ignores output file
+        output_file = tmp_path / "ignored.txt"
+        result = runner.invoke(
+            main,
+            ["analyze", str(sample_coverage_data), "--format", "text", "--output", str(output_file)],
+        )
+        assert result.exit_code == 0
+        # Text format displays to console, not to file
+        assert not output_file.exists() or output_file.stat().st_size == 0
 
     def test_analyze_json_format(self, runner, sample_coverage_data, tmp_path):
         """Test analyze command with JSON output."""
@@ -269,9 +281,15 @@ class TestCLIFormats:
         content = output_file.read_text()
         assert "<html" in content.lower()
 
-    def test_html_without_output_fails(self, runner, sample_coverage_data):
-        """Test HTML format requires output file."""
+    def test_formats_requiring_output(self, runner, sample_coverage_data):
+        """Test formats that require output file specification."""
+        # HTML format requires output file
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "html"])
+        assert result.exit_code != 0
+        assert "requires --output" in result.output.lower()
+        
+        # CSV format requires output file
+        result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "csv"])
         assert result.exit_code != 0
         assert "requires --output" in result.output.lower()
 
@@ -284,23 +302,6 @@ class TestCLIFormats:
         )
         assert result.exit_code == 0
         assert output_file.exists()
-
-    def test_csv_without_output_fails(self, runner, sample_coverage_data):
-        """Test CSV format requires output file."""
-        result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "csv"])
-        assert result.exit_code != 0
-        assert "requires --output" in result.output.lower()
-
-    def test_text_format_ignores_output(self, runner, sample_coverage_data, tmp_path):
-        """Test text format ignores output file."""
-        output_file = tmp_path / "ignored.txt"
-        result = runner.invoke(
-            main,
-            ["analyze", str(sample_coverage_data), "--format", "text", "--output", str(output_file)],
-        )
-        assert result.exit_code == 0
-        # Text format displays to console, not to file
-        assert not output_file.exists() or output_file.stat().st_size == 0
 
 
 class TestCLIQualityGate:
@@ -418,11 +419,6 @@ performance:
         result = runner.invoke(
             main, ["--config", str(config_file), "analyze", str(coverage_file)]
         )
-        assert result.exit_code == 0
-
-    def test_log_level_option(self, runner, sample_coverage_data):
-        """Test setting log level."""
-        result = runner.invoke(main, ["--log-level", "DEBUG", "analyze", str(sample_coverage_data)])
         assert result.exit_code == 0
 
     def test_log_file_option(self, runner, sample_coverage_data, tmp_path):

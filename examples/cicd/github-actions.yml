@@ -7,6 +7,8 @@
 # - Publishing reports as artifacts
 # - Using baselines with GitHub Actions cache
 # - Setting job status based on quality gate results
+#
+# Note: pytest is now included as a TestIQ dependency, no need to install separately!
 
 name: Test Quality Analysis with TestIQ
 
@@ -37,13 +39,17 @@ jobs:
     - name: 📦 Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-cov testiq
+        pip install testiq pytest-cov
         # Install your project dependencies
         pip install -r requirements.txt || true
     
-    - name: 🧪 Run tests with coverage
+    - name: 🧪 Run tests with TestIQ plugin
       run: |
-        pytest --cov=. --cov-report=json:coverage.json --cov-report=term
+        # Option 1: Use TestIQ pytest plugin (recommended - per-test coverage)
+        pytest --testiq-output=testiq_coverage.json
+        
+        # Option 2: Use pytest-cov (aggregated coverage)
+        # pytest --cov=src --cov-report=json:coverage.json
     
     - name: 📊 Run TestIQ analysis
       id: testiq-analysis
@@ -52,17 +58,16 @@ jobs:
         mkdir -p reports
         
         # Generate reports
-        testiq analyze coverage.json \
+        testiq analyze testiq_coverage.json \
           --format html \
-          --output reports/testiq-report.html \
-          --verbose
+          --output reports/testiq-report.html
         
-        testiq analyze coverage.json \
+        testiq analyze testiq_coverage.json \
           --format csv \
           --output reports/testiq-summary.csv
         
         # Generate quality score
-        testiq quality-score coverage.json | tee reports/quality-score.txt
+        testiq quality-score testiq_coverage.json | tee reports/quality-score.txt
     
     - name: 🚦 Quality gate check
       id: quality-gate
@@ -74,11 +79,10 @@ jobs:
         echo "🚦 Running quality gate checks..."
         
         # Run quality gate with strict thresholds
-        testiq analyze coverage.json \
+        testiq analyze testiq_coverage.json \
           --quality-gate \
           --max-duplicates ${{ env.TESTIQ_MAX_DUPLICATES }} \
-          --threshold ${{ env.TESTIQ_THRESHOLD }} \
-          --fail-on-increase
+          --threshold ${{ env.TESTIQ_THRESHOLD }}
         
         echo "✅ Quality gate PASSED"
     
@@ -93,7 +97,7 @@ jobs:
         echo "quality_gate_failed=true" >> $GITHUB_OUTPUT
         
         # Extract quality score for display
-        QUALITY_SCORE=$(testiq quality-score coverage.json | grep "Overall Score" | awk '{print $3}')
+        QUALITY_SCORE=$(testiq quality-score testiq_coverage.json | grep -oP '\d+/100' | head -1 || echo "N/A")
         echo "Quality Score: $QUALITY_SCORE" >> $GITHUB_STEP_SUMMARY
         
         # Option 1: Fail the job (strict mode)
@@ -110,7 +114,7 @@ jobs:
       run: |
         # Save baseline with timestamp
         BASELINE_NAME="baseline-$(date +%Y%m%d-%H%M%S)"
-        testiq analyze coverage.json --save-baseline $BASELINE_NAME
+        testiq analyze testiq_coverage.json --save-baseline $BASELINE_NAME
         
         echo "✅ Baseline saved: $BASELINE_NAME"
     
@@ -188,18 +192,17 @@ jobs:
     - name: 📦 Install TestIQ
       run: pip install testiq
     
-    - name: 🧪 Run tests
+    - name: 🧪 Run tests with TestIQ plugin
       run: |
-        pip install pytest pytest-cov
-        pytest --cov=. --cov-report=json:coverage.json
+        pytest --testiq-output=testiq_coverage.json
     
     - name: 📊 Compare with baseline
       continue-on-error: true
       run: |
         # Compare with production baseline
-        testiq analyze coverage.json \
-          --compare-baseline production-baseline \
-          --output reports/baseline-comparison.txt || true
+        testiq analyze testiq_coverage.json \
+          --baseline production-baseline \
+          --format text > reports/baseline-comparison.txt || true
         
         if [ -f reports/baseline-comparison.txt ]; then
           cat reports/baseline-comparison.txt
@@ -222,9 +225,9 @@ jobs:
     
     - name: Install and analyze
       run: |
-        pip install pytest pytest-cov testiq
-        pytest --cov=. --cov-report=json:coverage.json
-        testiq quality-score coverage.json
+        pip install testiq
+        pytest --testiq-output=testiq_coverage.json
+        testiq quality-score testiq_coverage.json
 
 # Example: Scheduled quality checks
   scheduled-quality-check:
@@ -243,6 +246,6 @@ jobs:
     
     - name: Run quality check
       run: |
-        pip install pytest pytest-cov testiq
-        pytest --cov=. --cov-report=json:coverage.json
-        testiq analyze coverage.json --quality-gate --max-duplicates 5
+        pip install testiq
+        pytest --testiq-output=testiq_coverage.json
+        testiq analyze testiq_coverage.json --quality-gate --max-duplicates 5

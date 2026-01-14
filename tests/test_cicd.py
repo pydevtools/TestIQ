@@ -70,52 +70,42 @@ class TestQualityGate:
             fail_on_increase=True,
         )
         assert gate.max_duplicates == 5
-        assert gate.max_duplicate_percentage == 10.0
+        assert gate.max_duplicate_percentage == pytest.approx(10.0)
         assert gate.fail_on_increase is True
 
 
 class TestQualityGateChecker:
     """Tests for QualityGateChecker."""
 
-    def test_passes_with_no_limits(self, sample_finder):
-        """Test that gate passes with no limits set."""
-        gate = QualityGate()
-        checker = QualityGateChecker(gate)
-
-        passed, details = checker.check(sample_finder, 0.9)
-
+    def test_quality_gate_scenarios(self, sample_finder, sample_result):
+        """Test various quality gate pass/fail scenarios."""
+        # Test passes with no limits set
+        gate_no_limits = QualityGate()
+        checker_no_limits = QualityGateChecker(gate_no_limits)
+        passed, details = checker_no_limits.check(sample_finder, 0.9)
         assert passed is True
         assert details["passed"] is True
         assert len(details["failures"]) == 0
-
-    def test_fails_max_duplicates(self, sample_finder):
-        """Test gate fails when exceeding max duplicates."""
-        gate = QualityGate(max_duplicates=0)
-        checker = QualityGateChecker(gate)
-
-        passed, details = checker.check(sample_finder, 0.9)
-
+        
+        # Test fails when exceeding max duplicates
+        gate_fail_max = QualityGate(max_duplicates=0)
+        checker_fail_max = QualityGateChecker(gate_fail_max)
+        passed, details = checker_fail_max.check(sample_finder, 0.9)
         assert passed is False
         assert details["passed"] is False
         assert len(details["failures"]) > 0
         assert any("exact duplicates" in f.lower() for f in details["failures"])
-
-    def test_passes_max_duplicates(self, sample_finder):
-        """Test gate passes when under max duplicates."""
-        gate = QualityGate(max_duplicates=10)
-        checker = QualityGateChecker(gate)
-
-        passed, details = checker.check(sample_finder, 0.9)
-
+        
+        # Test passes when under max duplicates
+        gate_pass_max = QualityGate(max_duplicates=10)
+        checker_pass_max = QualityGateChecker(gate_pass_max)
+        passed, _ = checker_pass_max.check(sample_finder, 0.9)
         assert passed is True
-
-    def test_fails_max_percentage(self, sample_finder):
-        """Test gate fails when exceeding max percentage."""
-        gate = QualityGate(max_duplicate_percentage=5.0)  # 5%
-        checker = QualityGateChecker(gate)
-
-        passed, details = checker.check(sample_finder, 0.9)
-
+        
+        # Test fails when exceeding max percentage
+        gate_fail_pct = QualityGate(max_duplicate_percentage=5.0)  # 5%
+        checker_fail_pct = QualityGateChecker(gate_fail_pct)
+        passed, _ = checker_fail_pct.check(sample_finder, 0.9)
         # With 10 tests and 1 duplicate = 10%, should fail 5% limit
         assert passed is False
 
@@ -204,7 +194,7 @@ class TestBaselineManager:
             baseline_dir = Path(tmpdir) / "new_dir"
             assert not baseline_dir.exists()
 
-            manager = BaselineManager(baseline_dir)
+            _ = BaselineManager(baseline_dir)
             assert baseline_dir.exists()
 
 
@@ -325,20 +315,20 @@ class TestGetExitCode:
     def test_exit_code_success(self):
         """Test exit code for successful run with no duplicates."""
         # Success: no duplicates, gate passed
-        assert get_exit_code(passed=True, duplicate_count=0, total_tests=10) == 0
+        assert get_exit_code(passed=True, duplicate_count=0, _total_tests=10) == 0
 
     def test_exit_code_duplicates_found(self):
         """Test exit code when duplicates are found."""
         # Duplicates found but gate passed
-        assert get_exit_code(passed=True, duplicate_count=5, total_tests=10) == 1
+        assert get_exit_code(passed=True, duplicate_count=5, _total_tests=10) == 1
 
     def test_exit_code_gate_failed(self):
         """Test exit code when quality gate fails."""
         # Gate failed
-        assert get_exit_code(passed=False, duplicate_count=10, total_tests=10) == 2
+        assert get_exit_code(passed=False, duplicate_count=10, _total_tests=10) == 2
 
     def test_exit_code_gate_failed_priority(self):
         """Test that gate failure takes priority over duplicates."""
         # Gate failure (2) should override duplicates found (1)
-        assert get_exit_code(passed=False, duplicate_count=5, total_tests=10) == 2
-        assert get_exit_code(passed=False, duplicate_count=0, total_tests=10) == 2
+        assert get_exit_code(passed=False, duplicate_count=5, _total_tests=10) == 2
+        assert get_exit_code(passed=False, duplicate_count=0, _total_tests=10) == 2

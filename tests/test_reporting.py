@@ -39,7 +39,7 @@ class TestHTMLReportGenerator:
     """Tests for HTMLReportGenerator."""
 
     def test_generate_html_report(self, sample_finder):
-        """Test generating HTML report."""
+        """Test generating HTML report with statistics cards."""
         generator = HTMLReportGenerator(sample_finder)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
@@ -71,6 +71,10 @@ class TestHTMLReportGenerator:
             # Check for test names
             assert "test_login_1" in content
             assert "test_login_2" in content
+            
+            # Check for stats cards structure
+            assert "class=\"stats\"" in content
+            assert "class=\"stat-card" in content
 
         finally:
             if output_path.exists():
@@ -92,25 +96,6 @@ class TestHTMLReportGenerator:
             # Check that it shows 0 tests in stats
             assert "<div class=\"stat-value\">0</div>" in content
             assert "No exact duplicates found" in content
-
-        finally:
-            if output_path.exists():
-                output_path.unlink()
-
-    def test_html_report_stats_cards(self, sample_finder):
-        """Test that HTML report includes statistics cards."""
-        generator = HTMLReportGenerator(sample_finder)
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
-            output_path = Path(f.name)
-
-        try:
-            generator.generate(output_path)
-            content = output_path.read_text()
-
-            # Check for stats cards structure (uses .stats class)
-            assert "class=\"stats\"" in content
-            assert "class=\"stat-card" in content
 
         finally:
             if output_path.exists():

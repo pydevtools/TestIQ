@@ -1,3 +1,6 @@
+<!-- ⚠️ MARKED FOR DELETION - See docs/DELETE_THESE_FILES.md -->
+<!-- Reason: Features are now standard in v0.2.0, not enterprise-only -->
+
 # Enterprise Features Guide
 
 ## Overview

@@ -123,55 +123,65 @@ class QualityAnalyzer:
         logger.info(f"Quality score: {score.overall_score:.1f}/100 (Grade: {grade})")
         return score
 
-    def _generate_recommendations(
-        self,
-        duplicate_count: int,
-        subset_count: int,
-        similar_count: int,
-        total_tests: int,
-    ) -> list[str]:
-        """Generate actionable recommendations based on analysis."""
-        recommendations = []
+    def _add_duplicate_recommendations(
+        self, recommendations: list[str], duplicate_count: int, total_tests: int
+    ) -> None:
+        """Add recommendations for exact duplicates."""
+        if duplicate_count <= 0:
+            return
+        
+        percentage = (duplicate_count / total_tests) * 100
+        if percentage > 20:
+            recommendations.append(
+                f"⚠️ CRITICAL: Remove {duplicate_count} exact duplicate tests ({percentage:.1f}% of total)"
+            )
+        elif percentage > 10:
+            recommendations.append(
+                f"⚠️ HIGH: Remove {duplicate_count} exact duplicate tests ({percentage:.1f}% of total)"
+            )
+        else:
+            recommendations.append(
+                f"📋 Remove {duplicate_count} exact duplicate tests to improve maintainability"
+            )
 
-        # Recommendations for exact duplicates
-        if duplicate_count > 0:
-            percentage = (duplicate_count / total_tests) * 100
-            if percentage > 20:
-                recommendations.append(
-                    f"⚠️ CRITICAL: Remove {duplicate_count} exact duplicate tests ({percentage:.1f}% of total)"
-                )
-            elif percentage > 10:
-                recommendations.append(
-                    f"⚠️ HIGH: Remove {duplicate_count} exact duplicate tests ({percentage:.1f}% of total)"
-                )
-            else:
-                recommendations.append(
-                    f"📋 Remove {duplicate_count} exact duplicate tests to improve maintainability"
-                )
+    def _add_subset_recommendations(
+        self, recommendations: list[str], subset_count: int, total_tests: int
+    ) -> None:
+        """Add recommendations for subset duplicates."""
+        if subset_count <= 0:
+            return
+        
+        percentage = (subset_count / total_tests) * 100
+        if percentage > 15:
+            recommendations.append(
+                f"⚠️ Review {subset_count} subset duplicates - many tests may be redundant"
+            )
+        else:
+            recommendations.append(
+                f"📋 Review {subset_count} subset duplicates for potential consolidation"
+            )
 
-        # Recommendations for subset duplicates
-        if subset_count > 0:
-            percentage = (subset_count / total_tests) * 100
-            if percentage > 15:
-                recommendations.append(
-                    f"⚠️ Review {subset_count} subset duplicates - many tests may be redundant"
-                )
-            else:
-                recommendations.append(
-                    f"📋 Review {subset_count} subset duplicates for potential consolidation"
-                )
+    def _add_similar_recommendations(
+        self, recommendations: list[str], similar_count: int, total_tests: int
+    ) -> None:
+        """Add recommendations for similar tests."""
+        if similar_count <= 0:
+            return
+        
+        if similar_count > total_tests:
+            recommendations.append(
+                f"⚠️ Consider refactoring {similar_count} similar test pairs - high overlap detected"
+            )
+        elif similar_count > total_tests // 2:
+            recommendations.append(
+                f"📋 Review {similar_count} similar test pairs for possible merging"
+            )
 
-        # Recommendations for similar tests
-        if similar_count > 0:
-            if similar_count > total_tests:
-                recommendations.append(
-                    f"⚠️ Consider refactoring {similar_count} similar test pairs - high overlap detected"
-                )
-            elif similar_count > total_tests // 2:
-                recommendations.append(
-                    f"📋 Review {similar_count} similar test pairs for possible merging"
-                )
-
+    def _add_best_practice_recommendations(
+        self, recommendations: list[str], duplicate_count: int, subset_count: int, 
+        similar_count: int, total_tests: int
+    ) -> None:
+        """Add best practice recommendations."""
         # Positive feedback
         if not recommendations:
             recommendations.append("✅ Excellent! No significant test duplication detected")
@@ -190,6 +200,24 @@ class QualityAnalyzer:
             recommendations.append(
                 "💡 Use shared test fixtures and helper functions to reduce code duplication"
             )
+
+    def _generate_recommendations(
+        self,
+        duplicate_count: int,
+        subset_count: int,
+        similar_count: int,
+        total_tests: int,
+    ) -> list[str]:
+        """Generate actionable recommendations based on analysis."""
+        recommendations = []
+
+        # Add all recommendation types
+        self._add_duplicate_recommendations(recommendations, duplicate_count, total_tests)
+        self._add_subset_recommendations(recommendations, subset_count, total_tests)
+        self._add_similar_recommendations(recommendations, similar_count, total_tests)
+        self._add_best_practice_recommendations(
+            recommendations, duplicate_count, subset_count, similar_count, total_tests
+        )
 
         return recommendations
 
