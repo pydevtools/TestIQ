@@ -29,69 +29,47 @@ class TestCoverageDuplicateFinder:
         assert finder.tests[1].test_name == "test_multifile"
         assert len(finder.tests[1].covered_lines) == 8  # 3 + 3 + 2 lines
 
-    def test_find_exact_duplicates(self):
-        """Test finding tests with identical coverage."""
-        finder = CoverageDuplicateFinder()
-
-        # Add three tests with identical coverage
+    def test_duplicate_detection_all_scenarios(self):
+        """Test exact duplicates, subset duplicates, and negative cases in one comprehensive test."""
+        # Scenario 1: Exact duplicates
+        finder1 = CoverageDuplicateFinder()
         for i in range(1, 4):
-            finder.add_test_coverage(f"test_{i}", {"file.py": [1, 2, 3]})
-
-        # Add one different test
-        finder.add_test_coverage("test_different", {"file.py": [10, 20]})
-
-        duplicates = finder.find_exact_duplicates()
-
+            finder1.add_test_coverage(f"test_{i}", {"file.py": [1, 2, 3]})
+        finder1.add_test_coverage("test_different", {"file.py": [10, 20]})
+        duplicates = finder1.find_exact_duplicates()
         assert len(duplicates) == 1
         assert len(duplicates[0]) == 3
         assert set(duplicates[0]) == {"test_1", "test_2", "test_3"}
-
-    def test_find_exact_duplicates_no_duplicates(self):
-        """Test when there are no exact duplicates."""
-        finder = CoverageDuplicateFinder()
-
-        finder.add_test_coverage("test_1", {"file.py": [1, 2]})
-        finder.add_test_coverage("test_2", {"file.py": [3, 4]})
-
-        duplicates = finder.find_exact_duplicates()
-
-        assert len(duplicates) == 0
-
-    def test_find_subset_duplicates(self):
-        """Test finding tests where one is a subset of another."""
-        finder = CoverageDuplicateFinder()
-
-        finder.add_test_coverage("test_minimal", {"file.py": [1, 2, 3]})
-
-        finder.add_test_coverage("test_complete", {"file.py": [1, 2, 3, 4, 5, 6, 7, 8, 9]})
-
-        subsets = finder.find_subset_duplicates()
-
+        
+        # Scenario 2: No exact duplicates
+        finder2 = CoverageDuplicateFinder()
+        finder2.add_test_coverage("test_1", {"file.py": [1, 2]})
+        finder2.add_test_coverage("test_2", {"file.py": [3, 4]})
+        assert len(finder2.find_exact_duplicates()) == 0
+        
+        # Scenario 3: Subset duplicates
+        finder3 = CoverageDuplicateFinder()
+        finder3.add_test_coverage("test_minimal", {"file.py": [1, 2, 3]})
+        finder3.add_test_coverage("test_complete", {"file.py": [1, 2, 3, 4, 5, 6, 7, 8, 9]})
+        subsets = finder3.find_subset_duplicates()
         assert len(subsets) == 1
         assert subsets[0][0] == "test_minimal"
         assert subsets[0][1] == "test_complete"
         assert subsets[0][2] == pytest.approx(0.333, rel=0.01)
+        
+        # Scenario 4: No subset duplicates
+        assert len(finder2.find_subset_duplicates()) == 0
 
-    def test_find_subset_duplicates_no_subsets(self):
-        """Test when there are no subset relationships."""
+    def test_similarity_detection_scenarios(self):
+        """Test similarity detection, sorting, and threshold variations."""
         finder = CoverageDuplicateFinder()
 
-        finder.add_test_coverage("test_1", {"file.py": [1, 2]})
-        finder.add_test_coverage("test_2", {"file.py": [3, 4]})
-
-        subsets = finder.find_subset_duplicates()
-
-        assert len(subsets) == 0
-
-    def test_find_similar_coverage(self):
-        """Test finding and sorting tests with similar coverage."""
-        finder = CoverageDuplicateFinder()
-
-        # Test with ~67% similarity
+        # Test 1: Finding and sorting similar coverage
+        # Add test with ~67% similarity
         finder.add_test_coverage("test_a", {"file.py": [1, 2, 3, 4, 5]})
         finder.add_test_coverage("test_b", {"file.py": [1, 2, 3, 4, 10]})
 
-        # Test with ~82% similarity (higher)
+        # Add test with ~82% similarity (higher)
         finder.add_test_coverage("test_c", {"file.py": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         finder.add_test_coverage("test_d", {"file.py": [1, 2, 3, 4, 5, 6, 7, 8, 9, 20]})
 
@@ -105,6 +83,20 @@ class TestCoverageDuplicateFinder:
             assert similar[0][2] >= similar[1][2]
             # Highest similarity should be ~82%
             assert similar[0][2] > 0.8
+
+        # Test 2: Threshold variations
+        finder2 = CoverageDuplicateFinder()
+        finder2.add_test_coverage("test_1", {"file.py": [1, 2, 3, 4, 5]})
+        finder2.add_test_coverage("test_2", {"file.py": [1, 2, 3, 4, 10]})
+
+        # With high threshold, should not match (similarity ~67%)
+        similar_high = finder2.find_similar_coverage(threshold=0.8)
+        assert len(similar_high) == 0
+
+        # With matching threshold, should find them
+        similar_low = finder2.find_similar_coverage(threshold=0.6)
+        assert len(similar_low) == 1
+        assert similar_low[0][2] == pytest.approx(0.667, rel=0.01)
 
 
     def test_generate_report(self):
@@ -131,21 +123,6 @@ class TestCoverageDuplicateFinder:
         assert finder.find_subset_duplicates() == []
         assert finder.find_similar_coverage() == []
 
-    def test_similarity_with_threshold(self):
-        """Test similarity detection with different threshold values."""
-        finder = CoverageDuplicateFinder()
-
-        finder.add_test_coverage("test_1", {"file.py": [1, 2, 3, 4, 5]})
-        finder.add_test_coverage("test_2", {"file.py": [1, 2, 3, 4, 10]})
-
-        # With high threshold, should not match (similarity ~67%)
-        similar = finder.find_similar_coverage(threshold=0.8)
-        assert len(similar) == 0
-
-        # With matching threshold, should find them
-        similar = finder.find_similar_coverage(threshold=0.6)
-        assert len(similar) == 1
-        assert similar[0][2] == pytest.approx(0.667, rel=0.01)
 
 
 class TestTestCoverage:

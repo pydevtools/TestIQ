@@ -105,8 +105,10 @@ class TestHTMLReportGenerator:
 class TestCSVReportGenerator:
     """Tests for CSVReportGenerator."""
 
-    def test_generate_exact_duplicates_csv(self, sample_finder):
-        """Test generating CSV for exact duplicates."""
+    def test_csv_generation_and_format(self, sample_finder):
+        """Test CSV generation and validate format is parseable."""
+        import csv
+        
         generator = CSVReportGenerator(sample_finder)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
@@ -118,13 +120,23 @@ class TestCSVReportGenerator:
             assert output_path.exists()
             content = output_path.read_text()
 
-            # Check CSV headers
+            # Test 1: Check CSV headers and content
             assert "Group" in content
             assert "Test Name" in content
-
-            # Check data
             assert "test_login_1" in content
             assert "test_login_2" in content
+
+            # Test 2: Validate CSV is parseable
+            with open(output_path, newline="") as csvfile:
+                reader = csv.DictReader(csvfile)
+                rows = list(reader)
+
+                # Should have at least one row
+                assert len(rows) > 0
+                
+                # Should have expected columns
+                assert "Group" in reader.fieldnames
+                assert "Test Name" in reader.fieldnames
 
         finally:
             if output_path.exists():
@@ -219,30 +231,4 @@ class TestCSVReportGenerator:
             if output_path.exists():
                 output_path.unlink()
 
-    def test_csv_valid_format(self, sample_finder):
-        """Test that CSV output is valid and parseable."""
-        import csv
 
-        generator = CSVReportGenerator(sample_finder)
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
-            output_path = Path(f.name)
-
-        try:
-            generator.generate_exact_duplicates(output_path)
-
-            # Try to parse the CSV
-            with open(output_path, newline="") as csvfile:
-                reader = csv.DictReader(csvfile)
-                rows = list(reader)
-
-                # Should have at least one row
-                assert len(rows) > 0
-
-                # Check that expected columns exist
-                assert "Group" in rows[0]
-                assert "Test Name" in rows[0]
-
-        finally:
-            if output_path.exists():
-                output_path.unlink()

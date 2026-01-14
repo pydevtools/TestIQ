@@ -61,11 +61,17 @@ class TestValidateFilePath:
         result = validate_file_path(test_file, check_exists=False)
         assert result.suffix == ".json"
 
-    def test_path_traversal_attack(self, tmp_path):
-        """Test detection of path traversal patterns."""
+    def test_dangerous_path_patterns(self, tmp_path):
+        """Test detection of various dangerous path patterns."""
+        # Test 1: Path traversal attack
         dangerous_file = tmp_path / "../../../etc/passwd.json"
         with pytest.raises(SecurityError, match="Dangerous path pattern detected"):
             validate_file_path(dangerous_file, check_exists=False)
+
+        # Test 2: Tilde expansion pattern
+        tilde_file = Path("~/test.json")
+        with pytest.raises(SecurityError, match="Dangerous path pattern detected"):
+            validate_file_path(tilde_file, check_exists=False)
 
     def test_invalid_extension(self, tmp_path):
         """Test rejection of invalid file extensions."""
@@ -85,11 +91,7 @@ class TestValidateFilePath:
             # Some filesystems don't allow backslashes in filenames
             pytest.skip("Filesystem doesn't support backslashes in filenames")
 
-    def test_tilde_expansion(self, tmp_path):
-        """Test detection of tilde expansion pattern."""
-        dangerous_file = Path("~/test.json")
-        with pytest.raises(SecurityError, match="Dangerous path pattern detected"):
-            validate_file_path(dangerous_file, check_exists=False)
+
 
 
 class TestCheckFileSize:
@@ -133,14 +135,21 @@ class TestCheckFileSize:
 class TestValidateCoverageData:
     """Test validate_coverage_data function."""
 
-    def test_valid_coverage_data(self):
-        """Test valid coverage data."""
-        data = {
+    def test_valid_coverage_scenarios(self):
+        """Test valid coverage data in various scenarios."""
+        # Test 1: Normal valid coverage data
+        data_normal = {
             "test_one": {"file1.py": [1, 2, 3], "file2.py": [10, 20]},
             "test_two": {"file1.py": [4, 5], "file3.py": [1, 2]},
         }
         # Should not raise
-        validate_coverage_data(data)
+        validate_coverage_data(data_normal)
+
+        # Test 2: Valid coverage at line limit
+        lines = list(range(1, MAX_LINES_PER_FILE + 1))
+        data_limit = {"test_one": {"file.py": lines}}
+        # Should not raise
+        validate_coverage_data(data_limit)
 
     def test_empty_coverage_data(self):
         """Test empty coverage data."""
@@ -176,35 +185,34 @@ class TestValidateCoverageData:
         with pytest.raises(ValidationError, match="must be a dictionary"):
             validate_coverage_data(data)
 
-    def test_non_string_file_name(self):
-        """Test non-string file name."""
-        data = {"test_one": {123: [1, 2]}}
+    def test_invalid_data_types_in_coverage(self):
+        """Test validation of invalid data types in coverage data."""
+        # Test 1: Non-string file name
+        data_bad_filename = {"test_one": {123: [1, 2]}}
         with pytest.raises(ValidationError, match="File name must be string"):
-            validate_coverage_data(data)
+            validate_coverage_data(data_bad_filename)
 
-    def test_non_list_lines(self):
-        """Test non-list lines."""
-        data = {"test_one": {"file.py": "not a list"}}
+        # Test 2: Non-list lines
+        data_bad_lines = {"test_one": {"file.py": "not a list"}}
         with pytest.raises(ValidationError, match="must be a list"):
-            validate_coverage_data(data)
+            validate_coverage_data(data_bad_lines)
 
-    def test_non_integer_line_number(self):
-        """Test non-integer line number."""
-        data = {"test_one": {"file.py": [1, 2, "3"]}}
+    def test_line_number_validation_scenarios(self):
+        """Test comprehensive line number validation scenarios."""
+        # Test 1: Non-integer line number
+        data_non_int = {"test_one": {"file.py": [1, 2, "3"]}}
         with pytest.raises(ValidationError, match="Line number must be integer"):
-            validate_coverage_data(data)
+            validate_coverage_data(data_non_int)
 
-    def test_invalid_line_number(self):
-        """Test invalid line number (< 1)."""
-        data = {"test_one": {"file.py": [1, 2, 0]}}
+        # Test 2: Invalid line number (zero)
+        data_zero = {"test_one": {"file.py": [1, 2, 0]}}
         with pytest.raises(ValidationError, match="Invalid line number: 0"):
-            validate_coverage_data(data)
+            validate_coverage_data(data_zero)
 
-    def test_negative_line_number(self):
-        """Test negative line number."""
-        data = {"test_one": {"file.py": [1, 2, -5]}}
+        # Test 3: Negative line number
+        data_negative = {"test_one": {"file.py": [1, 2, -5]}}
         with pytest.raises(ValidationError, match="Invalid line number: -5"):
-            validate_coverage_data(data)
+            validate_coverage_data(data_negative)
 
     def test_too_many_lines(self):
         """Test exceeding max lines limit."""
@@ -214,12 +222,6 @@ class TestValidateCoverageData:
         with pytest.raises(SecurityError, match="covers too many lines"):
             validate_coverage_data(data)
 
-    def test_valid_at_line_limit(self):
-        """Test valid coverage at line limit."""
-        lines = list(range(1, MAX_LINES_PER_FILE + 1))
-        data = {"test_one": {"file.py": lines}}
-        # Should not raise
-        validate_coverage_data(data)
 
 
 class TestSanitizeOutputPath:

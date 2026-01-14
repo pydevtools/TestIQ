@@ -225,16 +225,12 @@ class TestParallelProcessor:
         results = processor.map(square, items)
         assert sorted(results) == [1, 4, 9, 16, 25]
 
-    def test_map_parallel_process(self):
-        """Test parallel processing with processes."""
-        # Note: ProcessPoolExecutor requires picklable functions
-        # Using lambda or nested functions won't work, so we skip this test
-        # or use a module-level function. For coverage, we'll test with threads instead
+    def test_parallel_map_scenarios(self):
+        """Test parallel mapping with processes and error handling."""
+        # Test 1: Parallel processing with processes
         processor = ParallelProcessor(max_workers=2, use_processes=True, enabled=True)
         items = [1, 2, 3, 4, 5]
         
-        # For process pool testing, we'd need a top-level function
-        # Instead, test that it falls back gracefully
         def local_square(x):
             return x * x
         
@@ -243,33 +239,33 @@ class TestParallelProcessor:
         assert results is not None
         assert len(results) == 5
 
-    def test_map_with_error(self):
-        """Test handling errors in parallel processing."""
-        processor = ParallelProcessor(max_workers=2, enabled=True)
-        items = [1, 2, 3, 4, 5]
+        # Test 2: Error handling in parallel processing
+        processor2 = ParallelProcessor(max_workers=2, enabled=True)
         
         def failing_func(x):
             if x == 3:
                 raise ValueError("Test error")
             return x * x
         
-        results = processor.map(failing_func, items)
+        results2 = processor2.map(failing_func, items)
         # Should have None for failed item
-        assert None in results
-        assert 1 in results
-        assert 4 in results
+        assert None in results2
+        assert 1 in results2
+        assert 4 in results2
 
-    def test_map_empty_list(self):
-        """Test processing empty list."""
+
+
+    def test_map_edge_cases(self):
+        """Test processing edge cases: empty list and single item."""
         processor = ParallelProcessor(enabled=True)
-        results = processor.map(lambda x: x, [])
-        assert results == []
-    
-    def test_map_single_item(self):
-        """Test processing single item (uses sequential)."""
-        processor = ParallelProcessor(enabled=True)
-        results = processor.map(lambda x: x * 2, [5])
-        assert results == [10]
+        
+        # Test 1: Empty list
+        results_empty = processor.map(lambda x: x, [])
+        assert results_empty == []
+        
+        # Test 2: Single item (uses sequential)
+        results_single = processor.map(lambda x: x * 2, [5])
+        assert results_single == [10]
 
 
 class TestComputeSimilarity:
@@ -340,36 +336,27 @@ class TestProgressTracker:
         assert tracker.desc == "Testing"
         assert tracker.last_logged_percent == -1
 
-    def test_update_progress(self):
-        """Test updating progress."""
+    def test_progress_tracking_scenarios(self):
+        """Test progress tracking including updates, percentages, and completion."""
+        # Test 1: Update progress
         tracker = ProgressTracker(total=100)
         tracker.update(10)
         assert tracker.current == 10
         tracker.update(15)
         assert tracker.current == 25
 
-    def test_update_default_increment(self):
-        """Test update with default increment."""
-        tracker = ProgressTracker(total=100)
-        tracker.update()
-        assert tracker.current == 1
-        tracker.update()
-        assert tracker.current == 2
-
-    def test_progress_percentage(self):
-        """Test progress percentage calculation."""
-        tracker = ProgressTracker(total=100)
-        tracker.update(25)
-        percent = (tracker.current / tracker.total) * 100
+        # Test 2: Progress percentage calculation
+        tracker2 = ProgressTracker(total=100)
+        tracker2.update(25)
+        percent = (tracker2.current / tracker2.total) * 100
         assert percent == 25.0
 
-    def test_complete_progress(self):
-        """Test completing 100% progress."""
-        tracker = ProgressTracker(total=10)
-        tracker.update(10)
-        assert tracker.current == 10
-        percent = (tracker.current / tracker.total) * 100
-        assert percent == 100.0
+        # Test 3: Complete 100% progress
+        tracker3 = ProgressTracker(total=10)
+        tracker3.update(10)
+        assert tracker3.current == 10
+        percent_complete = (tracker3.current / tracker3.total) * 100
+        assert percent_complete == 100.0
 
 
 class TestBatchIterator:

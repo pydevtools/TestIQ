@@ -28,8 +28,9 @@ def reset_global_manager():
 class TestHookType:
     """Tests for HookType enum."""
 
-    def test_all_hook_types_exist(self):
-        """Test that all expected hook types are defined."""
+    def test_hook_type_validation_scenarios(self):
+        """Test hook type definitions and nonexistent hook behavior."""
+        # Test 1: All expected hook types exist
         expected_hooks = [
             "BEFORE_ANALYSIS",
             "AFTER_ANALYSIS",
@@ -43,18 +44,35 @@ class TestHookType:
         for hook in expected_hooks:
             assert hasattr(HookType, hook)
 
-    def test_hook_type_values(self):
-        """Test that hook types have string values."""
+        # Test 2: Triggering nonexistent hook doesn't raise error
+        manager = PluginManager()
+        # Should not raise an error
+        manager.trigger(HookType.BEFORE_ANALYSIS, {})
+
+    def test_hook_type_validation_extended(self):
+        """Test hook type values and unregister nonexistent hook behavior."""
+        # Test 1: Hook types have string values
         assert isinstance(HookType.BEFORE_ANALYSIS.value, str)
         assert HookType.BEFORE_ANALYSIS.value == "before_analysis"
+        
+        # Test 2: Unregistering nonexistent hook doesn't raise error
+        manager = PluginManager()
+
+        def my_hook(ctx: HookContext):
+            pass
+
+        # Should not raise an error
+        manager.unregister_hook(HookType.BEFORE_ANALYSIS, my_hook)
 
 
 class TestPluginManager:
     """Tests for PluginManager."""
 
-    def test_register_hook(self):
-        """Test registering a hook."""
+    def test_hook_registration_scenarios(self):
+        """Test hook registration including single and multiple hooks."""
         manager = PluginManager()
+        
+        # Test 1: Register single hook
         called = []
 
         def my_hook(ctx: HookContext):
@@ -66,9 +84,8 @@ class TestPluginManager:
         assert HookType.BEFORE_ANALYSIS in manager.hooks
         assert len(manager.hooks[HookType.BEFORE_ANALYSIS]) == 1
 
-    def test_register_multiple_hooks(self):
-        """Test registering multiple hooks for same event."""
-        manager = PluginManager()
+        # Test 2: Register multiple hooks for same event
+        manager2 = PluginManager()
 
         def hook1(ctx: HookContext):
             pass
@@ -76,10 +93,10 @@ class TestPluginManager:
         def hook2(ctx: HookContext):
             pass
 
-        manager.register_hook(HookType.BEFORE_ANALYSIS, hook1)
-        manager.register_hook(HookType.BEFORE_ANALYSIS, hook2)
+        manager2.register_hook(HookType.BEFORE_ANALYSIS, hook1)
+        manager2.register_hook(HookType.BEFORE_ANALYSIS, hook2)
 
-        assert len(manager.hooks[HookType.BEFORE_ANALYSIS]) == 2
+        assert len(manager2.hooks[HookType.BEFORE_ANALYSIS]) == 2
 
     def test_trigger_hook(self):
         """Test triggering a hook."""
@@ -113,12 +130,7 @@ class TestPluginManager:
 
         assert results == ["hook1", "hook2"]
 
-    def test_trigger_nonexistent_hook(self):
-        """Test triggering a hook with no registered callbacks."""
-        manager = PluginManager()
 
-        # Should not raise an error
-        manager.trigger(HookType.BEFORE_ANALYSIS, {})
 
     def test_unregister_hook(self):
         """Test unregistering a hook."""
@@ -133,15 +145,7 @@ class TestPluginManager:
         manager.unregister_hook(HookType.AFTER_ANALYSIS, my_hook)
         assert len(manager.hooks.get(HookType.AFTER_ANALYSIS, [])) == 0
 
-    def test_unregister_nonexistent_hook(self):
-        """Test unregistering a hook that wasn't registered."""
-        manager = PluginManager()
 
-        def my_hook(ctx: HookContext):
-            pass
-
-        # Should not raise an error
-        manager.unregister_hook(HookType.BEFORE_ANALYSIS, my_hook)
 
     def test_clear_hooks(self):
         """Test clearing all hooks."""
@@ -185,8 +189,9 @@ class TestPluginManager:
 class TestGlobalFunctions:
     """Tests for global convenience functions."""
 
-    def test_register_global_hook(self):
-        """Test registering a hook globally."""
+    def test_global_hook_registration_scenarios(self):
+        """Test global hook registration including multiple registrations."""
+        # Test 1: Simple registration
         called = []
 
         def my_hook(ctx: HookContext):
@@ -196,6 +201,20 @@ class TestGlobalFunctions:
         trigger_hook(HookType.BEFORE_ANALYSIS)
 
         assert len(called) == 1
+
+        # Test 2: Multiple registrations of same function
+        called2 = []
+
+        def my_hook2(ctx: HookContext):
+            called2.append(True)
+
+        register_hook(HookType.ON_DUPLICATE_FOUND, my_hook2)
+        register_hook(HookType.ON_DUPLICATE_FOUND, my_hook2)  # Register again
+
+        trigger_hook(HookType.ON_DUPLICATE_FOUND)
+
+        # Function should be called twice
+        assert len(called2) == 2
 
     def test_unregister_global_hook(self):
         """Test unregistering a global hook."""
@@ -228,20 +247,7 @@ class TestGlobalFunctions:
         for hooks_list in manager.hooks.values():
             assert len(hooks_list) == 0
 
-    def test_multiple_registrations_same_function(self):
-        """Test registering the same function multiple times."""
-        called = []
 
-        def my_hook(ctx: HookContext):
-            called.append(True)
-
-        register_hook(HookType.ON_DUPLICATE_FOUND, my_hook)
-        register_hook(HookType.ON_DUPLICATE_FOUND, my_hook)  # Register again
-
-        trigger_hook(HookType.ON_DUPLICATE_FOUND)
-
-        # Function should be called twice
-        assert len(called) == 2
 
     def test_hook_with_data(self):
         """Test hooks receive correct data."""

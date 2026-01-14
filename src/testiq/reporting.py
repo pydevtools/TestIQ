@@ -501,6 +501,43 @@ class HTMLReportGenerator:
             gap: 10px;
             margin: 20px 0;
         }}
+        .pagination-controls {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }}
+        .page-size-selector {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #2c3e50;
+        }}
+        .page-size-selector label {{
+            font-weight: 600;
+        }}
+        .page-size-selector select {{
+            padding: 6px 12px;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }}
+        .page-size-selector select:hover {{
+            border-color: #00c6ff;
+            box-shadow: 0 2px 8px rgba(0, 198, 255, 0.2);
+        }}
+        .page-size-selector select:focus {{
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.1);
+        }}
         .page-btn {{
             padding: 8px 12px;
             background: #00c6ff;
@@ -577,24 +614,66 @@ class HTMLReportGenerator:
         </div>
 
         <div id="exact-content" class="tab-content active">
-            <h2>🎯 Exact Duplicates</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🎯 Exact Duplicates</h2>
+                <div class="page-size-selector">
+                    <label for="exact-page-size">Items per page:</label>
+                    <select id="exact-page-size" onchange="changePageSize('exact', parseInt(this.value))">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="999999">All</option>
+                    </select>
+                </div>
+            </div>
             <p>Tests with identical code coverage that can be safely removed.</p>
+            <div class="pagination-controls">
+                <div id="exact-pagination" class="pagination"></div>
+            </div>
             <div id="exact-table"></div>
-            <div id="exact-pagination" class="pagination"></div>
         </div>
 
         <div id="similar-content" class="tab-content">
-            <h2>🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
+                <div class="page-size-selector">
+                    <label for="similar-page-size">Items per page:</label>
+                    <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="999999">All</option>
+                    </select>
+                </div>
+            </div>
             <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+            <div class="pagination-controls">
+                <div id="similar-pagination" class="pagination"></div>
+            </div>
             <div id="similar-table"></div>
-            <div id="similar-pagination" class="pagination"></div>
         </div>
 
         <div id="subset-content" class="tab-content">
-            <h2>📊 Subset Duplicates</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">📊 Subset Duplicates</h2>
+                <div class="page-size-selector">
+                    <label for="subset-page-size">Items per page:</label>
+                    <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="999999">All</option>
+                    </select>
+                </div>
+            </div>
             <p>Tests that are subsets of other tests and may be redundant.</p>
+            <div class="pagination-controls">
+                <div id="subset-pagination" class="pagination"></div>
+            </div>
             <div id="subset-table"></div>
-            <div id="subset-pagination" class="pagination"></div>
         </div>
 
         <script>
@@ -631,8 +710,22 @@ class HTMLReportGenerator:
         const coverageByFile = {{}};
         {self._build_coverage_data_js()}
         
-        const itemsPerPage = 20;
+        let itemsPerPage = {{ exact: 20, similar: 20, subset: 20 }};
         let currentPages = {{ exact: 1, similar: 1, subset: 1, coverage: 1 }};
+        
+        function changePageSize(type, newSize) {{
+            itemsPerPage[type] = newSize;
+            currentPages[type] = 1; // Reset to first page
+            
+            // Re-render the appropriate section
+            if (type === 'exact') {{
+                renderExactDuplicates(1);
+            }} else if (type === 'similar') {{
+                renderSimilarTests(1);
+            }} else if (type === 'subset') {{
+                renderSubsetDuplicates(1);
+            }}
+        }}
         
         function truncateTestName(testName) {{
             if (!testName || typeof testName !== 'string') {{
@@ -675,8 +768,9 @@ class HTMLReportGenerator:
         }}
         
         function renderExactDuplicates(page) {{
-            const start = (page - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
+            const pageSize = itemsPerPage['exact'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
             const pageData = exactDupsData.slice(start, end);
             
             let html = '';
@@ -715,13 +809,14 @@ class HTMLReportGenerator:
             }}
             
             document.getElementById('exact-table').innerHTML = html;
-            renderPagination('exact', exactDupsData.length, page);
+            renderPagination('exact', exactDupsData.length, page, pageSize);
             formatTestNames();
         }}
         
         function renderSimilarTests(page) {{
-            const start = (page - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
+            const pageSize = itemsPerPage['similar'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
             const pageData = similarData.slice(start, end);
             
             let html = '';
@@ -758,13 +853,14 @@ class HTMLReportGenerator:
             }}
             
             document.getElementById('similar-table').innerHTML = html;
-            renderPagination('similar', similarData.length, page);
+            renderPagination('similar', similarData.length, page, pageSize);
             formatTestNames();
         }}
         
         function renderSubsetDuplicates(page) {{
-            const start = (page - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
+            const pageSize = itemsPerPage['subset'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
             const pageData = subsetData.slice(start, end);
             
             let html = '';
@@ -801,20 +897,20 @@ class HTMLReportGenerator:
             }}
             
             document.getElementById('subset-table').innerHTML = html;
-            renderPagination('subset', subsetData.length, page);
+            renderPagination('subset', subsetData.length, page, pageSize);
             formatTestNames();
         }}
         
-        function renderPagination(type, totalItems, currentPage) {{
-            const totalPages = Math.ceil(totalItems / itemsPerPage);
+        function renderPagination(type, totalItems, currentPage, pageSize) {{
+            const totalPages = Math.ceil(totalItems / pageSize);
             
             if (totalPages <= 1) {{
                 document.getElementById(type + '-pagination').innerHTML = '';
                 return;
             }}
             
-            const start = (currentPage - 1) * itemsPerPage + 1;
-            const end = Math.min(currentPage * itemsPerPage, totalItems);
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, totalItems);
             
             let html = '<button class="page-btn" onclick="changePage(\\'' + type + '\\', ' + (currentPage - 1) + ')" ' +
                 (currentPage === 1 ? 'disabled' : '') + '>← Previous</button>' +

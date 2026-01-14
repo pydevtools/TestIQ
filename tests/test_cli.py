@@ -75,13 +75,44 @@ class TestCLI:
             ["analyze", str(sample_coverage_data), "--format", "text", "--output", str(output_file)],
         )
         assert result.exit_code == 0
-        # Text format displays to console, not to file
         assert not output_file.exists() or output_file.stat().st_size == 0
+        
+        # Test with log file
+        log_file = tmp_path / "testiq.log"
+        result = runner.invoke(
+            main, ["--log-file", str(log_file), "analyze", str(sample_coverage_data)]
+        )
+        assert result.exit_code == 0
+        
+        # Test save baseline
+        baseline_file = tmp_path / "test_baseline"
+        result = runner.invoke(
+            main, ["analyze", str(sample_coverage_data), "--save-baseline", str(baseline_file)]
+        )
+        assert result.exit_code == 0
+        assert "saved" in result.output.lower()
+        
+        # Test custom config file
+        config_file = tmp_path / "testiq.yaml"
+        config_file.write_text("""
+analysis:
+  similarity_threshold: 0.95
 
-    def test_analyze_json_format(self, runner, sample_coverage_data, tmp_path):
-        """Test analyze command with JSON output."""
+performance:
+  enable_parallel: false
+""")
+        coverage_data = {"test_a": {"file.py": [1, 2]}}
+        coverage_file = tmp_path / "coverage.json"
+        coverage_file.write_text(json.dumps(coverage_data))
+        result = runner.invoke(
+            main, ["--config", str(config_file), "analyze", str(coverage_file)]
+        )
+        assert result.exit_code == 0
+
+    def test_analyze_output_formats(self, runner, sample_coverage_data, tmp_path):
+        """Test analyze command with various output formats and options."""
+        # Test JSON format with output file
         output_file = tmp_path / "output.json"
-
         result = runner.invoke(
             main,
             [
@@ -93,16 +124,55 @@ class TestCLI:
                 str(output_file),
             ],
         )
-
         assert result.exit_code == 0
         assert output_file.exists()
-
-        # Verify JSON is valid
         with open(output_file) as f:
             data = json.load(f)
             assert "exact_duplicates" in data
             assert "subset_duplicates" in data
             assert "similar_tests" in data
+        
+        # Test JSON to stdout
+        result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "json"])
+        assert result.exit_code == 0
+        output = result.output
+        json_start = output.find("{")
+        if json_start >= 0:
+            json_text = output[json_start:]
+            try:
+                data = json.loads(json_text)
+                assert "exact_duplicates" in data
+            except json.JSONDecodeError:
+                assert "{" in output and "}" in output
+        else:
+            assert len(output) > 0
+        
+        # Test with all options
+        output_file2 = tmp_path / "full_report.json"
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(sample_coverage_data),
+                "--threshold",
+                "0.75",
+                "--format",
+                "json",
+                "--output",
+                str(output_file2),
+            ],
+        )
+        assert result.exit_code == 0
+        assert output_file2.exists()
+        
+        # Test CSV format
+        output_file3 = tmp_path / "report.csv"
+        result = runner.invoke(
+            main,
+            ["analyze", str(sample_coverage_data), "--format", "csv", "--output", str(output_file3)],
+        )
+        assert result.exit_code == 0
+        assert output_file3.exists()
 
     def test_analyze_markdown_format(self, runner, sample_coverage_data, tmp_path):
         """Test analyze command with markdown output."""
@@ -126,107 +196,61 @@ class TestCLI:
         content = output_file.read_text()
         assert "# Test Duplication Report" in content
 
-    def test_analyze_nonexistent_file(self, runner):
-        """Test analyze command with non-existent file."""
+    def test_cli_error_handling_scenarios(self, runner, tmp_path):
+        """Test comprehensive CLI error handling scenarios."""
+        # Test 1: Non-existent file
         result = runner.invoke(main, ["analyze", "nonexistent.json"])
-
         assert result.exit_code != 0
-
-    def test_analyze_invalid_json(self, runner, tmp_path):
-        """Test analyze command with invalid JSON."""
+        
+        # Test 2: Invalid JSON
         bad_file = tmp_path / "bad.json"
         bad_file.write_text("not valid json {")
-
         result = runner.invoke(main, ["analyze", str(bad_file)])
-
         assert result.exit_code != 0
         assert "error" in result.output.lower() or "invalid" in result.output.lower()
 
-    def test_analyze_with_all_options(self, runner, sample_coverage_data, tmp_path):
-        """Test analyze command with all options."""
-        output_file = tmp_path / "full_report.json"
+        # Test 3: Invalid coverage data structure
+        bad_data = {"test1": "not a dict"}
+        coverage_file = tmp_path / "bad_structure.json"
+        coverage_file.write_text(json.dumps(bad_data))
+        result = runner.invoke(main, ["analyze", str(coverage_file)])
+        assert result.exit_code != 0
 
-        result = runner.invoke(
-            main,
-            [
-                "analyze",
-                str(sample_coverage_data),
-                "--threshold",
-                "0.75",
-                "--format",
-                "json",
-                "--output",
-                str(output_file),
-            ],
-        )
-
-        assert result.exit_code == 0
-        assert output_file.exists()
-
-    def test_analyze_stdout_output(self, runner, sample_coverage_data):
-        """Test analyze command outputs to stdout by default."""
-        result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "json"])
-
-        assert result.exit_code == 0
-        # Output may contain logging lines, find the JSON block
-        output = result.output
-
-        # Find JSON start
-        json_start = output.find("{")
-        if json_start >= 0:
-            # Find matching closing brace
-            json_text = output[json_start:]
-            # Try to parse JSON
-            try:
-                data = json.loads(json_text)
-                assert "exact_duplicates" in data
-            except json.JSONDecodeError:
-                # JSON might be split by logging, just verify output exists
-                assert "{" in output and "}" in output
-        else:
-            # No JSON found, just verify output exists
-            assert len(output) > 0
+        # Test 4: Security violation (invalid file extension)
+        bad_ext = tmp_path / "test.exe"
+        bad_ext.write_text("{}")
+        result = runner.invoke(main, ["analyze", str(bad_ext)])
+        assert result.exit_code != 0
 
 
 class TestCLIIntegration:
     """Integration tests for CLI."""
 
-    def test_full_workflow(self, runner, tmp_path):
-        """Test a complete workflow: create data, analyze, check output."""
-        # Create coverage data
+    def test_cli_workflow_with_thresholds(self, runner, sample_coverage_data, tmp_path):
+        """Test complete CLI workflow with duplicate detection and threshold variations."""
+        # Test 1: Full workflow with duplicate detection
         coverage_data = {
             "test_a": {"file.py": [1, 2, 3]},
             "test_b": {"file.py": [1, 2, 3]},
             "test_c": {"file.py": [10, 20]},
         }
-
         input_file = tmp_path / "coverage.json"
         input_file.write_text(json.dumps(coverage_data))
-
         output_file = tmp_path / "report.json"
-
-        # Run analysis
         result = runner.invoke(
             main, ["analyze", str(input_file), "--format", "json", "--output", str(output_file)]
         )
-
         assert result.exit_code == 0
         assert output_file.exists()
-
-        # Verify results
         with open(output_file) as f:
             data = json.load(f)
-            # Should find test_a and test_b as duplicates
             assert len(data["exact_duplicates"]) >= 1
             duplicates = data["exact_duplicates"][0]
             assert set(duplicates) == {"test_a", "test_b"}
-
-    def test_threshold_affects_results(self, runner, sample_coverage_data, tmp_path):
-        """Test that threshold parameter affects similarity results."""
+        
+        # Test 2: Threshold parameter affects similarity results
         output_low = tmp_path / "low_threshold.json"
         output_high = tmp_path / "high_threshold.json"
-
-        # Run with low threshold
         runner.invoke(
             main,
             [
@@ -240,8 +264,6 @@ class TestCLIIntegration:
                 str(output_low),
             ],
         )
-
-        # Run with high threshold
         runner.invoke(
             main,
             [
@@ -255,14 +277,10 @@ class TestCLIIntegration:
                 str(output_high),
             ],
         )
-
-        # Low threshold should find more similar tests
         with open(output_low) as f:
             low_data = json.load(f)
-
         with open(output_high) as f:
             high_data = json.load(f)
-
         assert len(low_data["similar_tests"]) >= len(high_data["similar_tests"])
 
 
@@ -293,59 +311,39 @@ class TestCLIFormats:
         assert result.exit_code != 0
         assert "requires --output" in result.output.lower()
 
-    def test_csv_format(self, runner, sample_coverage_data, tmp_path):
-        """Test CSV output format."""
-        output_file = tmp_path / "report.csv"
-        result = runner.invoke(
-            main,
-            ["analyze", str(sample_coverage_data), "--format", "csv", "--output", str(output_file)],
-        )
-        assert result.exit_code == 0
-        assert output_file.exists()
 
 
 class TestCLIQualityGate:
     """Test quality gate functionality."""
 
-    def test_quality_gate_pass(self, runner, tmp_path):
-        """Test quality gate passes with good code."""
-        coverage_data = {
+    def test_quality_gate_pass_and_fail(self, runner, tmp_path):
+        """Test quality gate pass and fail scenarios."""
+        # Test passing case with unique tests
+        coverage_data_pass = {
             "test_a": {"file.py": [1, 2]},
             "test_b": {"file.py": [3, 4]},
             "test_c": {"file.py": [5, 6]},
         }
-        coverage_file = tmp_path / "coverage.json"
-        coverage_file.write_text(json.dumps(coverage_data))
-
+        coverage_file_pass = tmp_path / "coverage_pass.json"
+        coverage_file_pass.write_text(json.dumps(coverage_data_pass))
         result = runner.invoke(
-            main, ["analyze", str(coverage_file), "--quality-gate", "--max-duplicates", "0"]
+            main, ["analyze", str(coverage_file_pass), "--quality-gate", "--max-duplicates", "0"]
         )
         assert result.exit_code == 0
         assert "PASSED" in result.output
-
-    def test_quality_gate_fail(self, runner, tmp_path):
-        """Test quality gate fails with duplicates."""
-        coverage_data = {
+        
+        # Test failing case with duplicates
+        coverage_data_fail = {
             "test_a": {"file.py": [1, 2, 3]},
             "test_b": {"file.py": [1, 2, 3]},
         }
-        coverage_file = tmp_path / "coverage.json"
-        coverage_file.write_text(json.dumps(coverage_data))
-
+        coverage_file_fail = tmp_path / "coverage_fail.json"
+        coverage_file_fail.write_text(json.dumps(coverage_data_fail))
         result = runner.invoke(
-            main, ["analyze", str(coverage_file), "--quality-gate", "--max-duplicates", "0"]
+            main, ["analyze", str(coverage_file_fail), "--quality-gate", "--max-duplicates", "0"]
         )
         assert result.exit_code == 2
         assert "FAILED" in result.output
-
-    def test_save_baseline(self, runner, sample_coverage_data, tmp_path):
-        """Test saving analysis baseline."""
-        baseline_file = tmp_path / "test_baseline"
-        result = runner.invoke(
-            main, ["analyze", str(sample_coverage_data), "--save-baseline", str(baseline_file)]
-        )
-        assert result.exit_code == 0
-        assert "saved" in result.output.lower()
 
 
 class TestCLIQualityScore:
@@ -370,32 +368,22 @@ class TestCLIQualityScore:
 class TestCLIBaseline:
     """Test baseline management commands."""
 
-    def test_baseline_list_empty(self, runner, tmp_path, monkeypatch):
-        """Test listing baselines when none exist."""
-        # Set baseline dir to temp location
+    def test_baseline_operations(self, runner, tmp_path, monkeypatch):
+        """Test baseline management operations."""
         baseline_dir = tmp_path / ".testiq" / "baselines"
         baseline_dir.mkdir(parents=True, exist_ok=True)
         monkeypatch.setenv("HOME", str(tmp_path))
+        
+        # Test listing when empty
         result = runner.invoke(main, ["baseline", "list"])
-        # Exit code may vary, just check output
         assert "No baselines" in result.output or len(result.output) > 0
-
-    def test_baseline_show_nonexistent(self, runner, tmp_path, monkeypatch):
-        """Test showing non-existent baseline."""
-        baseline_dir = tmp_path / ".testiq" / "baselines"
-        baseline_dir.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setenv("HOME", str(tmp_path))
+        
+        # Test showing non-existent baseline
         result = runner.invoke(main, ["baseline", "show", "nonexistent"])
-        # Should fail or show not found
         assert result.exit_code != 0 or "not found" in result.output.lower()
-
-    def test_baseline_delete_nonexistent(self, runner, tmp_path, monkeypatch):
-        """Test deleting non-existent baseline."""
-        baseline_dir = tmp_path / ".testiq" / "baselines"
-        baseline_dir.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setenv("HOME", str(tmp_path))
+        
+        # Test deleting non-existent baseline
         result = runner.invoke(main, ["baseline", "delete", "nonexistent", "--force"])
-        # Should fail or show not found
         assert result.exit_code != 0 or "not found" in result.output.lower()
 
 
@@ -421,35 +409,9 @@ performance:
         )
         assert result.exit_code == 0
 
-    def test_log_file_option(self, runner, sample_coverage_data, tmp_path):
-        """Test setting log file."""
-        log_file = tmp_path / "testiq.log"
-        result = runner.invoke(
-            main, ["--log-file", str(log_file), "analyze", str(sample_coverage_data)]
-        )
-        assert result.exit_code == 0
-
 
 class TestCLIErrorHandling:
     """Test error handling in CLI."""
-
-    def test_invalid_coverage_structure(self, runner, tmp_path):
-        """Test handling invalid coverage data structure."""
-        bad_data = {"test1": "not a dict"}
-        coverage_file = tmp_path / "bad.json"
-        coverage_file.write_text(json.dumps(bad_data))
-
-        result = runner.invoke(main, ["analyze", str(coverage_file)])
-        assert result.exit_code != 0
-
-    def test_security_violation(self, runner, tmp_path):
-        """Test security validation failures."""
-        # Create file with invalid extension
-        bad_file = tmp_path / "test.exe"
-        bad_file.write_text("{}")
-
-        result = runner.invoke(main, ["analyze", str(bad_file)])
-        assert result.exit_code != 0
 
     def test_config_error(self, runner, tmp_path):
         """Test configuration error handling."""

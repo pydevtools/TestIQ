@@ -77,9 +77,9 @@ class TestQualityGate:
 class TestQualityGateChecker:
     """Tests for QualityGateChecker."""
 
-    def test_quality_gate_scenarios(self, sample_finder, sample_result):
-        """Test various quality gate pass/fail scenarios."""
-        # Test passes with no limits set
+    def test_quality_gate_all_scenarios(self, sample_finder, sample_result):
+        """Test all quality gate pass/fail scenarios including baseline comparisons."""
+        # Test passes with no limits
         gate_no_limits = QualityGate()
         checker_no_limits = QualityGateChecker(gate_no_limits)
         passed, details = checker_no_limits.check(sample_finder, 0.9)
@@ -103,24 +103,18 @@ class TestQualityGateChecker:
         assert passed is True
         
         # Test fails when exceeding max percentage
-        gate_fail_pct = QualityGate(max_duplicate_percentage=5.0)  # 5%
+        gate_fail_pct = QualityGate(max_duplicate_percentage=5.0)
         checker_fail_pct = QualityGateChecker(gate_fail_pct)
         passed, _ = checker_fail_pct.check(sample_finder, 0.9)
-        # With 10 tests and 1 duplicate = 10%, should fail 5% limit
         assert passed is False
-
-    def test_fails_on_increase(self, sample_finder, sample_result):
-        """Test gate fails when duplicates increase from baseline."""
-        # Baseline has 10 duplicates, current has more
-        gate = QualityGate(fail_on_increase=True)
-        checker = QualityGateChecker(gate)
-
-        # Modify baseline to have fewer duplicates
+        
+        # Test fails on increase from baseline
+        gate_increase = QualityGate(fail_on_increase=True)
+        checker_increase = QualityGateChecker(gate_increase)
         baseline = sample_result
         baseline.exact_duplicates = 0
-
-        passed, details = checker.check(sample_finder, 0.9, baseline)
-
+        baseline.subset_duplicates = 0
+        passed, details = checker_increase.check(sample_finder, 0.9, baseline)
         assert passed is False
         assert any("increased" in f.lower() for f in details["failures"])
 

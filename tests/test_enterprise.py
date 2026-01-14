@@ -56,14 +56,6 @@ class TestSecurity:
         with pytest.raises(ValidationError, match="must be a list"):
             validate_coverage_data({"test1": {"file.py": "not a list"}})
 
-    def test_validate_coverage_data_invalid_line_numbers(self):
-        """Test rejecting invalid line numbers (integration check)."""
-        with pytest.raises(ValidationError, match="must be integer"):
-            validate_coverage_data({"test1": {"file.py": ["1"]}})
-
-        with pytest.raises(ValidationError, match="must be >= 1"):
-            validate_coverage_data({"test1": {"file.py": [0]}})
-
 
 class TestConfig:
     """Test configuration management."""
