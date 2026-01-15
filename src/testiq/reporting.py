@@ -369,6 +369,16 @@ class HTMLReportGenerator:
             margin: 1px 0;
             white-space: pre;
         }}
+        .covered-both {{
+            background: #c8e6c9;
+            border-left: 3px solid #4caf50;
+            font-weight: 600;
+        }}
+        .covered-single {{
+            background: #fff9c4;
+            border-left: 3px solid #fbc02d;
+            font-weight: 500;
+        }}
         .covered {{
             background: #d4edda;
             border-left: 3px solid #28a745;
@@ -585,6 +595,13 @@ class HTMLReportGenerator:
         @keyframes spin {{
             0% {{ transform: rotate(0deg); }}
             100% {{ transform: rotate(360deg); }}
+        }}
+        
+        /* Responsive: Hide text on small screens, keep only icon */
+        @media (max-width: 768px) {{
+            .view-coverage-text {{
+                display: none;
+            }}
         }}
     </style>
 </head>
@@ -808,7 +825,7 @@ class HTMLReportGenerator:
                             <td><strong>Group ${{groupNum}}</strong></td>
                             <td>${{testList}}</td>
                             <td><span class="badge badge-danger">${{group.length}} tests</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
                         </tr>`;
                 }});
                 
@@ -852,7 +869,7 @@ class HTMLReportGenerator:
                             <td><span class="test-name" title="${{escapeHtml(test1)}}" style="cursor: help;">${{t1}}</span></td>
                             <td><span class="test-name" title="${{escapeHtml(test2)}}" style="cursor: help;">${{t2}}</span></td>
                             <td><span class="badge badge-info">${{simPercent}}%</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
                         </tr>`;
                 }});
                 
@@ -896,7 +913,7 @@ class HTMLReportGenerator:
                             <td><span class="test-name" title="${{escapeHtml(subsetTest)}}" style="cursor: help;">${{sub}}</span></td>
                             <td><span class="test-name" title="${{escapeHtml(supersetTest)}}" style="cursor: help;">${{sup}}</span></td>
                             <td><span class="badge badge-warning">${{ratioPercent}}%</span></td>
-                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 View Coverage</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
                         </tr>`;
                 }});
                 
@@ -952,6 +969,13 @@ class HTMLReportGenerator:
                 }}
             }});
         }}
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {{
+            renderExactDuplicates(1);
+            renderSimilarTests(1);
+            renderSubsetDuplicates(1);
+        }});
         </script>
 """
         
@@ -1075,7 +1099,7 @@ class HTMLReportGenerator:
         <div id="comparisonModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 style="margin: 0;">📊 Coverage Comparison</h2>
+                    <h2 style="margin: 0;">📊 Coverage Comparison: Execution Paths</h2>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="filter-section">
                             <label for="fileFilter" style="font-weight: 600; margin-right: 8px;">📁</label>
@@ -1090,6 +1114,10 @@ class HTMLReportGenerator:
                         <span class="close" onclick="closeModal()">&times;</span>
                     </div>
                 </div>
+                <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px 16px; margin: 0 20px 16px; border-radius: 4px; font-size: 14px;">
+                    <strong>ℹ️ Note:</strong> Source code is identical. Highlighting shows <strong>which lines each test executed</strong>. 
+                    Different execution paths are normal due to conditional branches (if/elif/else), early returns, and functions called with different parameters.
+                </div>
                 <div class="coverage-info">
                     <div>
                         <strong>Subset Test:</strong> <span id="subsetName" class="test-name"></span>
@@ -1097,6 +1125,11 @@ class HTMLReportGenerator:
                         <strong>Superset Test:</strong> <span id="supersetName" class="test-name"></span>
                         &nbsp;&nbsp;|&nbsp;&nbsp;
                         <strong>Coverage Ratio:</strong> <span id="coverageRatio" class="badge badge-warning"></span>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: #f5f5f5; border-radius: 4px; display: inline-flex; gap: 20px; font-size: 13px;">
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #c8e6c9; border-radius: 3px; vertical-align: middle;"></span> Both tests executed</span>
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #fff9c4; border-radius: 3px; vertical-align: middle;"></span> Only one test executed</span>
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #ffffff; border: 1px solid #ddd; border-radius: 3px; vertical-align: middle;"></span> Neither test executed</span>
                     </div>
                 </div>
                 <div class="split-view">
@@ -1207,13 +1240,35 @@ class HTMLReportGenerator:
                 
                 // Render each line with gap detection
                 let prevLineNum = null;
+                let inDocstring = false;
+                let docstringDelimiter = '';
+                
                 for (let idx = 0; idx < allLineNums.length; idx++) {{
                     const lineNum = allLineNums[idx];
                     const sourceLine = fileSource[lineNum] || '';
                     const trimmed = sourceLine.trim();
                     
-                    // Skip docstrings
+                    // Track docstring state
                     if (trimmed.startsWith('\"\"\"') || trimmed.startsWith("'''")) {{
+                        const delimiter = trimmed.startsWith('\"\"\"') ? '\"\"\"' : "'''";
+                        if (!inDocstring) {{
+                            // Starting a docstring
+                            inDocstring = true;
+                            docstringDelimiter = delimiter;
+                            // Check if it's a single-line docstring
+                            const afterDelimiter = trimmed.substring(3);
+                            if (afterDelimiter.includes(delimiter)) {{
+                                inDocstring = false; // Single-line docstring
+                            }}
+                            continue; // Skip docstring opening line
+                        }} else if (inDocstring && delimiter === docstringDelimiter) {{
+                            // Ending a docstring
+                            inDocstring = false;
+                            docstringDelimiter = '';
+                            continue; // Skip docstring closing line
+                        }}
+                    }} else if (inDocstring) {{
+                        // Skip content inside docstring
                         continue;
                     }}
                     
@@ -1226,17 +1281,17 @@ class HTMLReportGenerator:
                         if (gap > 3) {{
                             // Show collapsible gap for >3 lines
                             const gapId = 'gap_' + file.replace(/[^a-zA-Z0-9]/g, '_') + '_' + gapStart + '_' + gapEnd;
-                            const gapText = '⋮ (' + gap + ' line' + (gap > 1 ? 's' : '') + ') ⋮ Click to expand';
+                            const gapText = '... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')';
                             
-                            subsetHtml += '<div class=\"code-line gap-line\" style=\"color: #00c6ff; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            subsetHtml += '<div class=\"code-line gap-line\" style=\"color: #000000; text-align: center; font-style: normal; background: transparent; cursor: pointer; padding: 2px 8px;\" ';
                             subsetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
-                            subsetHtml += 'onclick=\"toggleGap(this, \\'subset\\')\" title=\"Click to view hidden lines\">';
+                            subsetHtml += 'onclick=\"toggleGap(this, \\'subset\\')\" title=\"Click to expand\">';
                             subsetHtml += '<strong>' + gapText + '</strong>';
                             subsetHtml += '</div>';
                             
-                            supersetHtml += '<div class=\"code-line gap-line\" style=\"color: #00c6ff; text-align: center; font-style: italic; background: #f0f0f0; cursor: pointer; padding: 8px;\" ';
+                            supersetHtml += '<div class=\"code-line gap-line\" style=\"color: #000000; text-align: center; font-style: normal; background: transparent; cursor: pointer; padding: 2px 8px;\" ';
                             supersetHtml += 'data-gap-id=\"' + gapId + '\" data-gap-start=\"' + gapStart + '\" data-gap-end=\"' + gapEnd + '\" data-file=\"' + escapeHtml(file) + '\" ';
-                            supersetHtml += 'onclick=\"toggleGap(this, \\'superset\\')\" title=\"Click to view hidden lines\">';
+                            supersetHtml += 'onclick=\"toggleGap(this, \\'superset\\')\" title=\"Click to expand\">';
                             supersetHtml += '<strong>' + gapText + '</strong>';
                             supersetHtml += '</div>';
                         }} else {{
@@ -1262,11 +1317,23 @@ class HTMLReportGenerator:
                     const lineNumStr = String(lineNum).padStart(4, ' ');
                     const isDefLine = trimmed.startsWith('def ') || trimmed.startsWith('class ') || trimmed.startsWith('async def ');
                     
+                    // Determine coverage status
+                    const inSubset = subsetLineSet.has(lineNum);
+                    const inSuperset = supersetLineSet.has(lineNum);
+                    const inBoth = inSubset && inSuperset;
+                    
                     // Render left side (subset)
-                    if (subsetLineSet.has(lineNum)) {{
-                        subsetHtml += '<div class=\"code-line covered\">';
+                    if (inBoth) {{
+                        // Both tests executed this line - GREEN
+                        subsetHtml += '<div class=\"code-line covered-both\">';
                         subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
-                        subsetHtml += escapeHtml(sourceLine) || '▌ Covered line';
+                        subsetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetHtml += '</div>';
+                    }} else if (inSubset) {{
+                        // Only subset executed this line - YELLOW
+                        subsetHtml += '<div class=\"code-line covered-single\">';
+                        subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine) || '&nbsp;';
                         subsetHtml += '</div>';
                     }} else if (isDefLine) {{
                         // Show def/class lines as context
@@ -1275,18 +1342,25 @@ class HTMLReportGenerator:
                         subsetHtml += escapeHtml(sourceLine);
                         subsetHtml += '</div>';
                     }} else {{
-                        // Show blank line to maintain alignment
-                        subsetHtml += '<div class=\"code-line\" style=\"opacity: 0.3;\">';
-                        subsetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
-                        subsetHtml += '<span style=\"color: #ccc;\">—</span>';
+                        // Show actual code dimmed for non-executed lines
+                        subsetHtml += '<div class=\"code-line\" style=\"opacity: 0.4; background: #fafafa;\">';
+                        subsetHtml += '<span style=\"color: #bbb; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        subsetHtml += '<span style=\"color: #999;\">' + escapeHtml(sourceLine) + '</span>';
                         subsetHtml += '</div>';
                     }}
                     
                     // Render right side (superset)
-                    if (supersetLineSet.has(lineNum)) {{
-                        supersetHtml += '<div class=\"code-line covered\">';
+                    if (inBoth) {{
+                        // Both tests executed this line - GREEN
+                        supersetHtml += '<div class=\"code-line covered-both\">';
                         supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
-                        supersetHtml += escapeHtml(sourceLine) || '▌ Covered line';
+                        supersetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetHtml += '</div>';
+                    }} else if (inSuperset) {{
+                        // Only superset executed this line - YELLOW
+                        supersetHtml += '<div class=\"code-line covered-single\">';
+                        supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine) || '&nbsp;';
                         supersetHtml += '</div>';
                     }} else if (isDefLine) {{
                         // Show def/class lines as context
@@ -1295,10 +1369,10 @@ class HTMLReportGenerator:
                         supersetHtml += escapeHtml(sourceLine);
                         supersetHtml += '</div>';
                     }} else {{
-                        // Show blank line to maintain alignment
-                        supersetHtml += '<div class=\"code-line\" style=\"opacity: 0.3;\">';
-                        supersetHtml += '<span style=\"color: #999; margin-right: 10px;\">' + lineNumStr + '</span>';
-                        supersetHtml += '<span style=\"color: #ccc;\">—</span>';
+                        // Show actual code dimmed for non-executed lines
+                        supersetHtml += '<div class=\"code-line\" style=\"opacity: 0.4; background: #fafafa;\">';
+                        supersetHtml += '<span style=\"color: #bbb; margin-right: 10px;\">' + lineNumStr + '</span>';
+                        supersetHtml += '<span style=\"color: #999;\">' + escapeHtml(sourceLine) + '</span>';
                         supersetHtml += '</div>';
                     }}
                 }}
@@ -1351,52 +1425,121 @@ class HTMLReportGenerator:
             const isExpanded = element.classList.contains('expanded');
             
             if (isExpanded) {{
-                // Collapse both sides
+                // Collapse both sides - show gap element again
                 const expandedLines = element.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
                 expandedLines.forEach(line => line.remove());
                 element.classList.remove('expanded');
-                element.innerHTML = '<strong>⋮ (' + (gapEnd - gapStart + 1) + ' line' + (gapEnd - gapStart > 0 ? 's' : '') + ') ⋮ Click to expand</strong>';
+                element.style.display = 'block';
+                const gap = gapEnd - gapStart + 1;
+                element.innerHTML = '<strong>... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')</strong>';
                 
                 // Collapse other side
                 if (otherGap) {{
                     const otherExpandedLines = otherGap.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
                     otherExpandedLines.forEach(line => line.remove());
                     otherGap.classList.remove('expanded');
-                    otherGap.innerHTML = '<strong>⋮ (' + (gapEnd - gapStart + 1) + ' line' + (gapEnd - gapStart > 0 ? 's' : '') + ') ⋮ Click to expand</strong>';
+                    otherGap.style.display = 'block';
+                    otherGap.innerHTML = '<strong>... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')</strong>';
                 }}
             }} else {{
-                // Expand both sides
-                const fileSource = sourceCode[file] || {};
+                // Expand both sides - hide gap element completely
                 element.classList.add('expanded');
-                element.innerHTML = '<strong>⋮ Click to collapse ⋮</strong>';
+                element.style.display = 'none';
                 
-                let insertHtml = '';
+                const fileSource = sourceCode[file] || {};
+                const subsetLineSet = new Set(currentData.subset[file] || []);
+                const supersetLineSet = new Set(currentData.superset[file] || []);
+                
+                let subsetInsertHtml = '';
+                let supersetInsertHtml = '';
+                
+                // Build in ASCENDING order from gapStart to gapEnd
+                // Show ALL lines when gap is expanded (including docstrings, comments, etc.)
                 for (let lineNum = gapStart; lineNum <= gapEnd; lineNum++) {{
                     const sourceLine = fileSource[lineNum] || '';
                     const lineNumStr = String(lineNum).padStart(4, ' ');
                     
-                    insertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.6; background: #f9f9f9; border-left: 3px solid #00c6ff;">';
-                    insertHtml += '<span style="color: #aaa; margin-right: 10px;">' + lineNumStr + '</span>';
-                    insertHtml += '<span style="color: #666;">' + escapeHtml(sourceLine) + '</span>';
-                    insertHtml += '</div>';
+                    const inSubset = subsetLineSet.has(lineNum);
+                    const inSuperset = supersetLineSet.has(lineNum);
+                    const inBoth = inSubset && inSuperset;
+                    
+                    // Make all expanded lines clickable to collapse
+                    const clickHandler = 'onclick="toggleGap(document.querySelector(\\'.gap-line[data-gap-id=\\\\\\'' + gapId + '\\\\\\']\\'), \\'subset\\')" style="cursor: pointer;" title="Click to collapse"';
+                    
+                    // Always show actual source code, with color coding for execution status
+                    // Build subset side HTML
+                    if (inBoth) {{
+                        subsetInsertHtml += '<div class="code-line expanded-line covered-both" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        subsetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetInsertHtml += '</div>';
+                    }} else if (inSubset) {{
+                        subsetInsertHtml += '<div class="code-line expanded-line covered-single" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        subsetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetInsertHtml += '</div>';
+                    }} else {{
+                        // Show actual code even when not executed, just dimmed
+                        subsetInsertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.4; background: #fafafa; cursor: pointer;" onclick="toggleGap(document.querySelector(\\'.gap-line[data-gap-id=\\\\\\'' + gapId + '\\\\\\']\\'), \\'subset\\')" title="Click to collapse">';
+                        subsetInsertHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        subsetInsertHtml += '</div>';
+                    }}
+                    
+                    // Build superset side HTML
+                    if (inBoth) {{
+                        supersetInsertHtml += '<div class="code-line expanded-line covered-both" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        supersetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetInsertHtml += '</div>';
+                    }} else if (inSuperset) {{
+                        supersetInsertHtml += '<div class="code-line expanded-line covered-single" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        supersetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetInsertHtml += '</div>';
+                    }} else {{
+                        // Show actual code even when not executed, just dimmed
+                        supersetInsertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.4; background: #fafafa; cursor: pointer;" onclick="toggleGap(document.querySelector(\\'.gap-line[data-gap-id=\\\\\\'' + gapId + '\\\\\\']\\'), \\'superset\\')" title="Click to collapse">';
+                        supersetInsertHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        supersetInsertHtml += '</div>';
+                    }}
                 }}
                 
-                // Insert after the gap element on current side
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = insertHtml;
-                while (tempDiv.firstChild) {{
-                    element.parentNode.insertBefore(tempDiv.firstChild, element.nextSibling);
+                // Insert in correct order: create elements array first, then insert in REVERSE
+                if (side === 'subset') {{
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = subsetInsertHtml;
+                    const elementsArray = Array.from(tempDiv.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray.length - 1; i >= 0; i--) {{
+                        element.parentNode.insertBefore(elementsArray[i], element.nextSibling);
+                    }}
+                }} else {{
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = supersetInsertHtml;
+                    const elementsArray = Array.from(tempDiv.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray.length - 1; i >= 0; i--) {{
+                        element.parentNode.insertBefore(elementsArray[i], element.nextSibling);
+                    }}
                 }}
                 
-                // Expand other side
+                // Expand other side - hide it too
                 if (otherGap) {{
                     otherGap.classList.add('expanded');
-                    otherGap.innerHTML = '<strong>⋮ Click to collapse ⋮</strong>';
+                    otherGap.style.display = 'none';
                     
                     const tempDiv2 = document.createElement('div');
-                    tempDiv2.innerHTML = insertHtml;
-                    while (tempDiv2.firstChild) {{
-                        otherGap.parentNode.insertBefore(tempDiv2.firstChild, otherGap.nextSibling);
+                    if (otherSide === 'subset') {{
+                        tempDiv2.innerHTML = subsetInsertHtml;
+                    }} else {{
+                        tempDiv2.innerHTML = supersetInsertHtml;
+                    }}
+                    const elementsArray2 = Array.from(tempDiv2.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray2.length - 1; i >= 0; i--) {{
+                        otherGap.parentNode.insertBefore(elementsArray2[i], otherGap.nextSibling);
                     }}
                 }}
             }}

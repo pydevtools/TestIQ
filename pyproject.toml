@@ -48,7 +48,7 @@ dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
     "mypy>=1.7.0",
-    "types-click>=8.1.0",
+    "types-click>=7.1.0",
     "types-pyyaml>=6.0.0",
 ]
 
