@@ -77,6 +77,32 @@ class HTMLReportGenerator:
         output_path.write_text(html)
         logger.info(f"HTML report saved: {output_path}")
 
+    def _prepare_coverage_data(
+        self,
+    ) -> tuple[dict[str, dict[int, str]], set[tuple[str, int]], float]:
+        """
+        Collect and analyze source files for coverage display.
+        
+        Returns:
+            Tuple of (source_code_map, unique_lines_covered, coverage_percentage)
+        """
+        source_reader = SourceCodeReader()
+        all_files = set()
+        unique_lines_covered = set()
+        
+        for test in self.finder.tests:
+            for filename, line in test.covered_lines:
+                all_files.add(filename)
+                unique_lines_covered.add((filename, line))
+        
+        source_code_map = source_reader.read_multiple(list(all_files))
+        
+        total_lines_in_files = sum(len(lines) for lines in source_code_map.values())
+        lines_covered = len(unique_lines_covered)
+        coverage_percentage = (lines_covered / total_lines_in_files * 100) if total_lines_in_files > 0 else 0
+        
+        return source_code_map, unique_lines_covered, coverage_percentage
+
     def _generate_html(
         self,
         title: str,
@@ -90,21 +116,7 @@ class HTMLReportGenerator:
         duplicate_count = self.finder.get_duplicate_count()
         
         # Collect and read source files for the split-screen view
-        source_reader = SourceCodeReader()
-        all_files = set()
-        unique_lines_covered = set()
-        for test in self.finder.tests:
-            for filename, line in test.covered_lines:
-                all_files.add(filename)
-                unique_lines_covered.add((filename, line))
-        
-        source_code_map = source_reader.read_multiple(list(all_files))
-        
-        # Calculate total lines in all files
-        total_lines_in_files = sum(len(lines) for lines in source_code_map.values())
-        lines_covered = len(unique_lines_covered)
-        
-        coverage_percentage = (lines_covered / total_lines_in_files * 100) if total_lines_in_files > 0 else 0
+        source_code_map, unique_lines_covered, coverage_percentage = self._prepare_coverage_data()
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
