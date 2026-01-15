@@ -71,7 +71,7 @@ class TestQualityScoreClass:
             recommendations=["Sample recommendation"],
         )
 
-        assert score.overall_score == 85.0
+        assert score.overall_score == pytest.approx(85.0)
         assert score.grade == "B+"
 
     def test_score_perfect(self):
@@ -85,7 +85,7 @@ class TestQualityScoreClass:
             recommendations=[],
         )
 
-        assert score.overall_score == 100.0
+        assert score.overall_score == pytest.approx(100.0)
         assert score.grade == "A+"
 
 

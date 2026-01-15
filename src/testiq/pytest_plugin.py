@@ -18,7 +18,7 @@ Or in pytest.ini:
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 import pytest
 from _pytest.config import Config
@@ -76,6 +76,65 @@ class TestIQPlugin:
         except ValueError:
             return False
 
+    def _get_docstring_delimiter(self, trimmed: str) -> Optional[str]:
+        """Extract docstring delimiter from a line."""
+        if '"""' in trimmed:
+            return '"""'
+        elif "'''" in trimmed:
+            return "'''"
+        return None
+
+    def _is_single_line_docstring(self, trimmed: str, delimiter: str) -> bool:
+        """Check if a line contains a complete single-line docstring."""
+        first_idx = trimmed.find(delimiter)
+        after_first = trimmed[first_idx + 3:]
+        return delimiter in after_first
+
+    def _process_docstring_line(
+        self, 
+        line_num: int, 
+        trimmed: str, 
+        in_docstring: bool, 
+        docstring_delimiter: str,
+        docstring_lines: set
+    ) -> tuple[bool, str]:
+        """Process a single line for docstring detection."""
+        delimiter = self._get_docstring_delimiter(trimmed)
+        if not delimiter:
+            if in_docstring:
+                docstring_lines.add(line_num)
+            return in_docstring, docstring_delimiter
+        
+        if not in_docstring:
+            # Starting a docstring
+            docstring_lines.add(line_num)
+            if self._is_single_line_docstring(trimmed, delimiter):
+                return False, ''
+            return True, delimiter
+        elif delimiter == docstring_delimiter:
+            # Ending a docstring
+            docstring_lines.add(line_num)
+            return False, ''
+        
+        # Inside a multi-line docstring with different delimiter
+        docstring_lines.add(line_num)
+        return in_docstring, docstring_delimiter
+
+    def _find_docstring_lines(self, file_lines: Dict[int, str]) -> set:
+        """Find all lines that are part of docstrings."""
+        docstring_lines = set()
+        in_docstring = False
+        docstring_delimiter = ''
+
+        for line_num in sorted(file_lines.keys()):
+            line = file_lines[line_num]
+            trimmed = line.strip()
+            in_docstring, docstring_delimiter = self._process_docstring_line(
+                line_num, trimmed, in_docstring, docstring_delimiter, docstring_lines
+            )
+
+        return docstring_lines
+
     def _is_docstring_line(self, filename: str, lineno: int) -> bool:
         """Check if a line is part of a docstring."""
         # Use cached result if available
@@ -94,48 +153,11 @@ class TestIQPlugin:
                 return False
 
         # Find all docstring lines in this file
-        docstring_lines = set()
-        file_lines = self.file_cache[filename]
-        in_docstring = False
-        docstring_delimiter = ''
-
-        for line_num in sorted(file_lines.keys()):
-            line = file_lines[line_num]
-            trimmed = line.strip()
-
-            # Check for docstring delimiters
-            if '"""' in trimmed or "'''" in trimmed:
-                if '"""' in trimmed:
-                    delimiter = '"""'
-                else:
-                    delimiter = "'''"
-
-                if not in_docstring:
-                    # Starting a docstring
-                    in_docstring = True
-                    docstring_delimiter = delimiter
-                    docstring_lines.add(line_num)
-                    
-                    # Check if it's a single-line docstring
-                    first_idx = trimmed.find(delimiter)
-                    after_first = trimmed[first_idx + 3:]
-                    if delimiter in after_first:
-                        # Single-line docstring
-                        in_docstring = False
-                        docstring_delimiter = ''
-                elif in_docstring and delimiter == docstring_delimiter:
-                    # Ending a docstring
-                    docstring_lines.add(line_num)
-                    in_docstring = False
-                    docstring_delimiter = ''
-            elif in_docstring:
-                # Inside a docstring
-                docstring_lines.add(line_num)
-
+        docstring_lines = self._find_docstring_lines(self.file_cache[filename])
         self.docstring_lines_cache[filename] = docstring_lines
         return lineno in docstring_lines
 
-    def pytest_runtest_teardown(self, item: Item) -> None:
+    def pytest_runtest_teardown(self, _item: Item) -> None:
         """Called after each test finishes."""
         # Stop tracing
         sys.settrace(None)
@@ -164,6 +186,49 @@ class TestIQPlugin:
 
             self.test_coverage[self.current_test] = coverage
 
+    def _get_file_content(self, file_path: str) -> Optional[Dict[int, str]]:
+        """Get cached file content or read and cache it."""
+        abs_path = str(Path.cwd() / file_path)
+        if abs_path not in self.file_cache:
+            try:
+                with open(abs_path, 'r', encoding='utf-8') as f:
+                    file_lines = f.readlines()
+                    self.file_cache[abs_path] = {i + 1: line for i, line in enumerate(file_lines)}
+            except Exception:
+                return None
+        return self.file_cache[abs_path]
+
+    def _is_definition_line(self, line_text: str) -> bool:
+        """Check if a line is a function or class definition."""
+        stripped = line_text.strip()
+        return stripped.startswith('def ') or stripped.startswith('class ')
+
+    def _should_stop_search(self, line_text: str, check_line: int, line_num: int) -> bool:
+        """Determine if we should stop searching backwards for definitions."""
+        stripped = line_text.strip()
+        if not stripped or stripped.startswith('#'):
+            return False
+        if stripped.startswith('@'):  # Decorator, continue searching
+            return False
+        # Don't search too far back
+        return check_line < line_num - 50
+
+    def _find_definition_for_line(self, line_num: int, file_content: Dict[int, str]) -> Optional[int]:
+        """Find the nearest definition line for a given executed line."""
+        for check_line in range(line_num - 1, 0, -1):
+            if check_line not in file_content:
+                break
+            
+            line_text = file_content[check_line]
+            
+            if self._is_definition_line(line_text):
+                return check_line
+            
+            if self._should_stop_search(line_text, check_line, line_num):
+                break
+        
+        return None
+
     def _add_definition_lines(self, coverage: Dict[str, List[int]]) -> None:
         """
         Add function/class definition lines to coverage.
@@ -175,51 +240,19 @@ class TestIQPlugin:
             if not lines:
                 continue
             
-            # Get file contents
-            try:
-                abs_path = str(Path.cwd() / file_path)
-                if abs_path not in self.file_cache:
-                    with open(abs_path, 'r', encoding='utf-8') as f:
-                        file_lines = f.readlines()
-                        self.file_cache[abs_path] = {i + 1: line for i, line in enumerate(file_lines)}
-                
-                file_content = self.file_cache[abs_path]
-            except Exception:
+            file_content = self._get_file_content(file_path)
+            if not file_content:
                 continue
             
-            # Find definition lines to add
             definition_lines = set()
-            
             for line_num in lines:
-                # Look backwards from this line to find the nearest def/class
-                for check_line in range(line_num - 1, 0, -1):
-                    if check_line not in file_content:
-                        break
-                    
-                    line_text = file_content[check_line].strip()
-                    
-                    # Found a function or class definition
-                    if line_text.startswith('def ') or line_text.startswith('class '):
-                        # Check indentation - make sure we're in the same scope
-                        if check_line < line_num:
-                            # Add this definition line
-                            definition_lines.add(check_line)
-                            # Only add the immediate parent definition
-                            break
-                    
-                    # Stop if we hit another statement at the same or lower indentation
-                    if line_text and not line_text.startswith('#'):
-                        # Check if this is a decorator
-                        if line_text.startswith('@'):
-                            continue
-                        # If we hit something else, stop looking
-                        if check_line < line_num - 50:  # Don't search too far
-                            break
+                def_line = self._find_definition_for_line(line_num, file_content)
+                if def_line:
+                    definition_lines.add(def_line)
             
-            # Add the definition lines to coverage
             coverage[file_path].extend(definition_lines)
 
-    def pytest_sessionfinish(self, session: Any) -> None:
+    def pytest_sessionfinish(self, _session: Any) -> None:
         """Called after all tests complete."""
         if self.test_coverage:
             output_path = Path(self.output_file)

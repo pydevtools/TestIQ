@@ -276,14 +276,14 @@ class TestComputeSimilarity:
         set1 = frozenset([1, 2, 3, 4])
         set2 = frozenset([1, 2, 3, 4])
         similarity = compute_similarity(set1, set2)
-        assert similarity == 1.0
+        assert similarity == pytest.approx(1.0)
 
     def test_no_overlap(self):
         """Test similarity of disjoint sets."""
         set1 = frozenset([1, 2, 3])
         set2 = frozenset([4, 5, 6])
         similarity = compute_similarity(set1, set2)
-        assert similarity == 0.0
+        assert similarity == pytest.approx(0.0)
 
     def test_partial_overlap(self):
         """Test similarity of partially overlapping sets."""
@@ -303,14 +303,14 @@ class TestComputeSimilarity:
         # Intersection: {1, 2} = 2 elements
         # Union: {1, 2, 3, 4} = 4 elements
         # Similarity: 2/4 = 0.5
-        assert similarity == 0.5
+        assert similarity == pytest.approx(0.5)
 
     def test_empty_sets(self):
         """Test similarity of empty sets."""
         set1 = frozenset()
         set2 = frozenset()
         similarity = compute_similarity(set1, set2)
-        assert similarity == 0.0
+        assert similarity == pytest.approx(0.0)
 
     def test_caching(self):
         """Test that similarity computation is cached."""
@@ -349,14 +349,14 @@ class TestProgressTracker:
         tracker2 = ProgressTracker(total=100)
         tracker2.update(25)
         percent = (tracker2.current / tracker2.total) * 100
-        assert percent == 25.0
+        assert percent == pytest.approx(25.0)
 
         # Test 3: Complete 100% progress
         tracker3 = ProgressTracker(total=10)
         tracker3.update(10)
         assert tracker3.current == 10
         percent_complete = (tracker3.current / tracker3.total) * 100
-        assert percent_complete == 100.0
+        assert percent_complete == pytest.approx(100.0)
 
 
 class TestBatchIterator:

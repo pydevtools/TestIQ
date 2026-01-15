@@ -109,6 +109,172 @@ def main(
         sys.exit(1)
 
 
+def _load_and_validate_coverage(coverage_file: Path, cfg: Config) -> dict:
+    """Load and validate coverage data from file."""
+    validated_path = validate_file_path(coverage_file)
+    check_file_size(validated_path, cfg.security.max_file_size)
+    
+    with open(validated_path) as f:
+        coverage_data = json.load(f)
+    
+    validate_coverage_data(coverage_data, cfg.security.max_tests)
+    logger.info(f"Loaded {len(coverage_data)} tests from coverage file")
+    
+    return coverage_data
+
+
+def _create_finder(cfg: Config, coverage_data: dict) -> CoverageDuplicateFinder:
+    """Create and populate the coverage duplicate finder."""
+    finder = CoverageDuplicateFinder(
+        enable_parallel=cfg.performance.enable_parallel,
+        max_workers=cfg.performance.max_workers,
+        enable_caching=cfg.performance.enable_caching,
+        cache_dir=cfg.performance.cache_dir,
+    )
+    
+    for test_name, test_coverage in coverage_data.items():
+        finder.add_test_coverage(test_name, test_coverage)
+    
+    return finder
+
+
+def _check_quality_gate(
+    quality_gate: bool,
+    max_duplicates: int,
+    baseline: Optional[Path],
+    finder: CoverageDuplicateFinder,
+    threshold: float,
+    console: Console,
+) -> int:
+    """Check quality gate and return exit code."""
+    if not quality_gate:
+        return 0
+    
+    gate = QualityGate(
+        max_duplicates=max_duplicates,
+        fail_on_increase=baseline is not None,
+    )
+    checker = QualityGateChecker(gate)
+    
+    baseline_result = None
+    if baseline:
+        baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
+        baseline_result = baseline_mgr.load(baseline.stem)
+    
+    passed, details = checker.check(finder, threshold, baseline_result)
+    
+    if not passed:
+        console.print("\n[red]✗ Quality Gate FAILED[/red]")
+        for failure in details["failures"]:
+            console.print(f"  • {failure}")
+        return 2
+    else:
+        console.print("\n[green]✓ Quality Gate PASSED[/green]")
+        return 0
+
+
+def _save_baseline_if_requested(
+    save_baseline: Optional[Path],
+    finder: CoverageDuplicateFinder,
+    threshold: float,
+    console: Console,
+) -> None:
+    """Save baseline file if requested."""
+    if not save_baseline:
+        return
+    
+    from testiq.cicd import AnalysisResult
+    
+    exact_dups = finder.find_exact_duplicates()
+    duplicate_count = sum(len(g) - 1 for g in exact_dups)
+    total_tests = len(finder.tests)
+    
+    result = AnalysisResult(
+        timestamp=datetime.now().isoformat(),
+        total_tests=total_tests,
+        exact_duplicates=duplicate_count,
+        duplicate_groups=len(exact_dups),
+        subset_duplicates=len(finder.find_subset_duplicates()),
+        similar_pairs=len(finder.find_similar_coverage(threshold)),
+        duplicate_percentage=(duplicate_count / total_tests * 100) if total_tests > 0 else 0,
+        threshold=threshold,
+    )
+    
+    baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
+    baseline_mgr.save(result, save_baseline.stem)
+    console.print(f"[green]✓ Baseline saved: {save_baseline}[/green]")
+
+
+def _generate_output(
+    format: str,
+    output: Optional[Path],
+    finder: CoverageDuplicateFinder,
+    threshold: float,
+    console: Console,
+) -> None:
+    """Generate output in the specified format."""
+    if format == "html":
+        if not output:
+            console.print("[red]Error: HTML format requires --output[/red]")
+            sys.exit(1)
+        html_gen = HTMLReportGenerator(finder)
+        html_gen.generate(output, threshold=threshold)
+        console.print(f"[green]✓ HTML report saved to {output}[/green]")
+    
+    elif format == "csv":
+        if not output:
+            console.print("[red]Error: CSV format requires --output[/red]")
+            sys.exit(1)
+        csv_gen = CSVReportGenerator(finder)
+        csv_gen.generate_summary(output, threshold=threshold)
+        console.print(f"[green]✓ CSV report saved to {output}[/green]")
+    
+    elif format == "json":
+        stats = finder.get_statistics(threshold)
+        result = {
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "testiq_version": __version__,
+                "threshold": threshold,
+                "total_tests": len(finder.tests),
+                "total_removable_duplicates": stats["total_removable_duplicates"],
+            },
+            "exact_duplicates": finder.find_exact_duplicates(),
+            "subset_duplicates": [
+                {"subset": s, "superset": sup, "ratio": r}
+                for s, sup, r in finder.get_sorted_subset_duplicates()
+            ],
+            "similar_tests": [
+                {"test1": t1, "test2": t2, "similarity": sim}
+                for t1, t2, sim in finder.find_similar_coverage(threshold)
+            ],
+            "statistics": stats,
+        }
+        output_text = json.dumps(result, indent=2)
+        
+        if output:
+            validated_output = sanitize_output_path(output)
+            validated_output.write_text(output_text)
+            console.print(f"[green]✓ JSON report saved to {validated_output}[/green]")
+        else:
+            console.print(output_text)
+    
+    elif format == "markdown":
+        output_text = finder.generate_report(threshold)
+        
+        if output:
+            validated_output = sanitize_output_path(output)
+            validated_output.write_text(output_text)
+            console.print(f"[green]✓ Report saved to {validated_output}[/green]")
+        else:
+            console.print(output_text)
+    
+    else:  # text format with rich
+        if output:
+            console.print("[yellow]Warning: --output ignored for text format[/yellow]")
+        display_results(finder, threshold)
+
+
 @main.command()
 @click.argument("coverage_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
@@ -184,143 +350,23 @@ def analyze(
     console.print()
 
     try:
-        # Security: Validate and check file
-        validated_path = validate_file_path(coverage_file)
-        check_file_size(validated_path, cfg.security.max_file_size)
-
-        # Load coverage data
-        with open(validated_path) as f:
-            coverage_data = json.load(f)
-
-        # Security: Validate coverage data
-        validate_coverage_data(coverage_data, cfg.security.max_tests)
-
-        logger.info(f"Loaded {len(coverage_data)} tests from coverage file")
-
-        # Create analyzer with config
-        finder = CoverageDuplicateFinder(
-            enable_parallel=cfg.performance.enable_parallel,
-            max_workers=cfg.performance.max_workers,
-            enable_caching=cfg.performance.enable_caching,
-            cache_dir=cfg.performance.cache_dir,
+        # Load and validate coverage data
+        coverage_data = _load_and_validate_coverage(coverage_file, cfg)
+        
+        # Create and populate finder
+        finder = _create_finder(cfg, coverage_data)
+        
+        # Check quality gate
+        exit_code = _check_quality_gate(
+            quality_gate, max_duplicates, baseline, finder, threshold, console
         )
-
-        # Add test coverage
-        for test_name, test_coverage in coverage_data.items():
-            finder.add_test_coverage(test_name, test_coverage)
-
-        # Quality gate checking
-        exit_code = 0
-        if quality_gate:
-            gate = QualityGate(
-                max_duplicates=max_duplicates,
-                fail_on_increase=baseline is not None,
-            )
-            checker = QualityGateChecker(gate)
-
-            # Load baseline if provided
-            baseline_result = None
-            if baseline:
-                baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
-                baseline_result = baseline_mgr.load(baseline.stem)
-
-            passed, details = checker.check(finder, threshold, baseline_result)
-
-            if not passed:
-                console.print("\n[red]✗ Quality Gate FAILED[/red]")
-                for failure in details["failures"]:
-                    console.print(f"  • {failure}")
-                exit_code = 2
-            else:
-                console.print("\n[green]✓ Quality Gate PASSED[/green]")
-
+        
         # Save baseline if requested
-        if save_baseline:
-            from testiq.cicd import AnalysisResult
-
-            exact_dups = finder.find_exact_duplicates()
-            duplicate_count = sum(len(g) - 1 for g in exact_dups)
-            total_tests = len(finder.tests)
-
-            result = AnalysisResult(
-                timestamp=datetime.now().isoformat(),
-                total_tests=total_tests,
-                exact_duplicates=duplicate_count,
-                duplicate_groups=len(exact_dups),
-                subset_duplicates=len(finder.find_subset_duplicates()),
-                similar_pairs=len(finder.find_similar_coverage(threshold)),
-                duplicate_percentage=(duplicate_count / total_tests * 100) if total_tests > 0 else 0,
-                threshold=threshold,
-            )
-
-            baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
-            baseline_mgr.save(result, save_baseline.stem)
-            console.print(f"[green]✓ Baseline saved: {save_baseline}[/green]")
-
-        # Generate output based on format
-        if format == "html":
-            if not output:
-                console.print("[red]Error: HTML format requires --output[/red]")
-                sys.exit(1)
-            html_gen = HTMLReportGenerator(finder)
-            html_gen.generate(output, threshold=threshold)
-            console.print(f"[green]✓ HTML report saved to {output}[/green]")
-
-        elif format == "csv":
-            if not output:
-                console.print("[red]Error: CSV format requires --output[/red]")
-                sys.exit(1)
-            csv_gen = CSVReportGenerator(finder)
-            csv_gen.generate_summary(output, threshold=threshold)
-            console.print(f"[green]✓ CSV report saved to {output}[/green]")
-
-        elif format == "json":
-            # Get statistics for comprehensive output
-            stats = finder.get_statistics(threshold)
-            
-            result = {
-                "metadata": {
-                    "timestamp": datetime.now().isoformat(),
-                    "testiq_version": __version__,
-                    "threshold": threshold,
-                    "total_tests": len(finder.tests),
-                    "total_removable_duplicates": stats["total_removable_duplicates"],
-                },
-                "exact_duplicates": finder.find_exact_duplicates(),
-                "subset_duplicates": [
-                    {"subset": s, "superset": sup, "ratio": r}
-                    for s, sup, r in finder.get_sorted_subset_duplicates()
-                ],
-                "similar_tests": [
-                    {"test1": t1, "test2": t2, "similarity": sim}
-                    for t1, t2, sim in finder.find_similar_coverage(threshold)
-                ],
-                "statistics": stats,
-            }
-            output_text = json.dumps(result, indent=2)
-
-            if output:
-                validated_output = sanitize_output_path(output)
-                validated_output.write_text(output_text)
-                console.print(f"[green]✓ JSON report saved to {validated_output}[/green]")
-            else:
-                console.print(output_text)
-
-        elif format == "markdown":
-            output_text = finder.generate_report(threshold)
-
-            if output:
-                validated_output = sanitize_output_path(output)
-                validated_output.write_text(output_text)
-                console.print(f"[green]✓ Report saved to {validated_output}[/green]")
-            else:
-                console.print(output_text)
-
-        else:  # text format with rich
-            if output:
-                console.print("[yellow]Warning: --output ignored for text format[/yellow]")
-            display_results(finder, threshold)
-
+        _save_baseline_if_requested(save_baseline, finder, threshold, console)
+        
+        # Generate output
+        _generate_output(format, output, finder, threshold, console)
+        
         sys.exit(exit_code)
 
     except TestIQError as e:

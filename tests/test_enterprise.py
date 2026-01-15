@@ -67,7 +67,7 @@ class TestConfig:
         assert config.log.level == "INFO"
         assert config.security.max_file_size == 100 * 1024 * 1024
         assert config.performance.enable_parallel is True
-        assert config.analysis.similarity_threshold == 0.3
+        assert config.analysis.similarity_threshold == pytest.approx(0.3)
 
     def test_config_from_dict(self):
         """Test creating config from dictionary."""
@@ -83,7 +83,7 @@ class TestConfig:
         assert config.log.level == "DEBUG"
         assert config.security.max_tests == 1000
         assert config.performance.max_workers == 8
-        assert config.analysis.similarity_threshold == 0.8
+        assert config.analysis.similarity_threshold == pytest.approx(0.8)
 
     def test_config_to_dict(self):
         """Test converting config to dictionary."""
@@ -147,7 +147,7 @@ class TestPerformance:
         similarity = compute_similarity(lines1, lines2)
 
         # Jaccard: intersection=2, union=4, similarity=0.5
-        assert similarity == 0.5
+        assert similarity == pytest.approx(0.5)
 
 
 class TestLogging:

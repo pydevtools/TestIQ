@@ -267,7 +267,7 @@ class TestGlobalFunctions:
         assert len(received_data) == 1
         assert received_data[0]["test1"] == "test_login_1"
         assert received_data[0]["test2"] == "test_login_2"
-        assert received_data[0]["similarity"] == 1.0
+        assert received_data[0]["similarity"] == pytest.approx(1.0)
 
 
 class TestPluginIntegration:

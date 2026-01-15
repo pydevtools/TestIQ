@@ -72,7 +72,7 @@ class HTMLReportGenerator:
         logger.info(f"  Subset duplicates: {len(subset_dups)}")
         logger.info(f"  Similar pairs: {len(similar)}")
 
-        html = self._generate_html(title, exact_dups, subset_dups, similar, threshold, __version__)
+        html = self._generate_html(title, exact_dups, subset_dups, similar, threshold)
 
         output_path.write_text(html)
         logger.info(f"HTML report saved: {output_path}")
@@ -84,7 +84,6 @@ class HTMLReportGenerator:
         subset_dups: list[tuple[str, str, float]],
         similar: list[tuple[str, str, float]],
         threshold: float,
-        version: str,
     ) -> str:
         """Generate HTML content."""
         total_tests = len(self.finder.tests)
