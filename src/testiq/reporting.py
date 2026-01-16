@@ -734,12 +734,9 @@ class HTMLReportGenerator:
         }}
         
         // Data for pagination
-        // Note: Coverage data is limited to first 20 items for similar and subset
-        const maxSimilar = 20;
-        const maxSubset = 20;
         const exactDupsData = {json.dumps([[list(group), i-1] for i, group in enumerate(exact_dups, 1)])};
-        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar[:20])])};
-        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + min(len(similar), 20) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups[:20])])};
+        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
+        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + len(similar) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
         
         // Build coverage data per file
         const coverageByFile = {{}};
