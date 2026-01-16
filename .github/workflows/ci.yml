@@ -78,14 +78,13 @@ jobs:
       run: |
         uv pip install --system -e .
     
-    - name: Run tests with coverage
+    - name: Run tests with TestIQ coverage
       run: |
-        uv pip install --system pytest pytest-cov
-        pytest --cov=src/testiq --cov-report=json
+        pytest tests/ --testiq-output=testiq_coverage.json -q
     
     - name: Analyze test quality with TestIQ
       run: |
-        testiq analyze coverage.json \
+        testiq analyze testiq_coverage.json \
           --quality-gate \
           --max-duplicates 10 \
           --save-baseline ci-baseline
@@ -95,7 +94,7 @@ jobs:
       if: always()
       run: |
         mkdir -p reports
-        testiq analyze coverage.json --format html --output reports/testiq-report.html
+        testiq analyze testiq_coverage.json --format html --output reports/testiq-report.html
     
     - name: Upload TestIQ report
       if: always()
