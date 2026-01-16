@@ -157,7 +157,7 @@ class TestIQPlugin:
         self.docstring_lines_cache[filename] = docstring_lines
         return lineno in docstring_lines
 
-    def pytest_runtest_teardown(self, _item: Item) -> None:
+    def pytest_runtest_teardown(self, item: Item) -> None:
         """Called after each test finishes."""
         # Stop tracing
         sys.settrace(None)
@@ -252,7 +252,7 @@ class TestIQPlugin:
             
             coverage[file_path].extend(definition_lines)
 
-    def pytest_sessionfinish(self, _session: Any) -> None:
+    def pytest_sessionfinish(self, session: Any) -> None:
         """Called after all tests complete."""
         if self.test_coverage:
             output_path = Path(self.output_file)
