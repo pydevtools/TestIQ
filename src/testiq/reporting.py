@@ -651,63 +651,63 @@ class HTMLReportGenerator:
         <div id="exact-content" class="tab-content active">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h2 style="margin: 0;">🎯 Exact Duplicates</h2>
-                <div class="page-size-selector">
-                    <label for="exact-page-size">Items per page:</label>
-                    <select id="exact-page-size" onchange="changePageSize('exact', parseInt(this.value))">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="999999">All</option>
-                    </select>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="exact-page-size">Items per page:</label>
+                        <select id="exact-page-size" onchange="changePageSize('exact', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="exact-pagination" class="pagination"></div>
                 </div>
             </div>
             <p>Tests with identical code coverage that can be safely removed.</p>
-            <div class="pagination-controls">
-                <div id="exact-pagination" class="pagination"></div>
-            </div>
             <div id="exact-table"></div>
         </div>
 
         <div id="similar-content" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h2 style="margin: 0;">🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
-                <div class="page-size-selector">
-                    <label for="similar-page-size">Items per page:</label>
-                    <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="999999">All</option>
-                    </select>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="similar-page-size">Items per page:</label>
+                        <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="similar-pagination" class="pagination"></div>
                 </div>
             </div>
             <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
-            <div class="pagination-controls">
-                <div id="similar-pagination" class="pagination"></div>
-            </div>
             <div id="similar-table"></div>
         </div>
 
         <div id="subset-content" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h2 style="margin: 0;">📊 Subset Duplicates</h2>
-                <div class="page-size-selector">
-                    <label for="subset-page-size">Items per page:</label>
-                    <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="999999">All</option>
-                    </select>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="subset-page-size">Items per page:</label>
+                        <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="subset-pagination" class="pagination"></div>
                 </div>
             </div>
             <p>Tests that are subsets of other tests and may be redundant.</p>
-            <div class="pagination-controls">
-                <div id="subset-pagination" class="pagination"></div>
-            </div>
             <div id="subset-table"></div>
         </div>
 
