@@ -30,27 +30,27 @@ jobs:
     
     - name: Run ruff (lint)
       run: |
-        uv run ruff check src/ tests/
+        ruff check src/ tests/
       continue-on-error: true
     
     - name: Run ruff (format check)
       run: |
-        uv run ruff format --check src/ tests/
+        ruff format --check src/ tests/
       continue-on-error: true
     
     - name: Run black (format check)
       run: |
-        uv run black --check src/ tests/
+        black --check src/ tests/
       continue-on-error: true
     
     - name: Run mypy (type check)
       run: |
-        uv run mypy src/
+        mypy src/
       continue-on-error: true
     
     - name: Run tests with coverage
       run: |
-        uv run pytest tests/ -v --cov=testiq --cov-report=xml --cov-report=json --cov-report=term
+        pytest tests/ -v --cov=testiq --cov-report=xml --cov-report=json --cov-report=term
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
