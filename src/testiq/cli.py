@@ -51,7 +51,7 @@ def _get_grade_color(grade: str) -> str:
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="testiq")
+@click.version_option(version=__version__, prog_name="TestIQ")
 @click.option(
     "--config",
     "-c",

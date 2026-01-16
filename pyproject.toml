@@ -1,7 +1,7 @@
 [project]
 name = "testiq"
 version = "0.2.0"
-description = "Intelligent test analysis - Find duplicate and redundant tests using coverage analysis"
+description = "TestIQ - Intelligent test analysis for finding duplicate and redundant tests using coverage analysis"
 readme = "README.md"
 authors = [
     { name = "Kiran K Kotari", email = "kirankotari@live.com" }
