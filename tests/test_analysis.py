@@ -4,7 +4,7 @@ Tests for analysis module (quality scoring and recommendations).
 
 import pytest
 
-from testiq.analysis import QualityAnalyzer, RecommendationEngine, QualityScore
+from testiq.analysis import QualityAnalyzer, QualityScore, RecommendationEngine
 from testiq.analyzer import CoverageDuplicateFinder
 
 
@@ -104,14 +104,14 @@ class TestQualityAnalyzer:
         assert 0 <= high_score.duplication_score <= 100
         assert 0 <= high_score.coverage_efficiency_score <= 100
         assert 0 <= high_score.uniqueness_score <= 100
-        
+
         # Low quality tests
         low_analyzer = QualityAnalyzer(low_quality_finder)
         low_score = low_analyzer.calculate_score(threshold=0.9)
         assert low_score.overall_score < 60.0
         assert low_score.duplication_score < 60.0
         assert low_score.grade in ["D", "D+", "D-", "F"]
-        
+
         # Medium quality with threshold variations
         med_analyzer = QualityAnalyzer(medium_quality_finder)
         med_score = med_analyzer.calculate_score(threshold=0.9)
@@ -121,7 +121,7 @@ class TestQualityAnalyzer:
         score_low_threshold = med_analyzer.calculate_score(threshold=0.5)
         assert score_high_threshold is not None
         assert score_low_threshold is not None
-        
+
         # Verify score ordering
         assert high_score.overall_score > med_score.overall_score > low_score.overall_score
 
@@ -153,12 +153,12 @@ class TestRecommendationEngine:
         # Should have high-priority recommendations due to low quality
         priorities = [r["priority"] for r in report["recommendations"]]
         assert "high" in priorities
-        
+
         # All recommendations should have valid priorities
         for rec in report["recommendations"]:
             assert rec["priority"] in ["high", "medium", "low"]
             assert "message" in rec
-        
+
         # Should recommend removing duplicates
         messages = [r["message"].lower() for r in report["recommendations"]]
         assert any("duplicate" in msg for msg in messages)
@@ -169,10 +169,10 @@ class TestRecommendationEngine:
         finder_mixed.add_test_coverage("test_unique_2", {"file2.py": [5, 6, 7]})
         finder_mixed.add_test_coverage("test_dup_1", {"common.py": [10, 11]})
         finder_mixed.add_test_coverage("test_dup_2", {"common.py": [10, 11]})
-        
+
         engine_mixed = RecommendationEngine(finder_mixed)
         report_mixed = engine_mixed.generate_report(threshold=0.9)
-        
+
         assert "recommendations" in report_mixed
         assert "statistics" in report_mixed
         assert len(report_mixed["recommendations"]) > 0
@@ -193,7 +193,7 @@ class TestRecommendationEngine:
         assert len(report["recommendations"]) <= 1
         for rec in report["recommendations"]:
             assert rec["priority"] == "low"
-        
+
         # Test 2: Medium quality workflow with statistics
         analyzer2 = QualityAnalyzer(medium_quality_finder)
         score2 = analyzer2.calculate_score(threshold=0.9)
@@ -212,14 +212,14 @@ class TestRecommendationEngine:
             assert "priority" in rec
             assert "message" in rec
             assert len(rec["message"]) > 0
-        
+
         # Test 3: Score influences recommendation priorities
         high_finder = CoverageDuplicateFinder()
         for i in range(10):
             high_finder.add_test_coverage(f"test_high_{i}", {f"file{i}.py": [i + 1, i + 2, i + 3]})
         high_engine = RecommendationEngine(high_finder)
         high_report = high_engine.generate_report(threshold=0.9)
-        
+
         low_finder = CoverageDuplicateFinder()
         for i in range(10):
             low_finder.add_test_coverage(f"test_low_{i}", {"file.py": [1, 2, 3]})

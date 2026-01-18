@@ -1,6 +1,7 @@
 """Pytest configuration and shared fixtures."""
 
 import pytest
+
 from testiq.analyzer import CoverageDuplicateFinder
 
 # Test file constants to avoid duplication

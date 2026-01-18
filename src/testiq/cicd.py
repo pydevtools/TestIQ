@@ -249,7 +249,7 @@ class BaselineManager:
                     })
             except Exception as e:
                 logger.warning(f"Failed to load baseline {baseline_file.stem}: {e}")
-        
+
         logger.debug(f"Available baselines: {[b['name'] for b in baselines]}")
         return baselines
 

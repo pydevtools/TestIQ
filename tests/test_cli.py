@@ -63,11 +63,11 @@ class TestCLI:
         # Test with custom threshold
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--threshold", "0.8"])
         assert result.exit_code == 0
-        
+
         # Test with log level option
         result = runner.invoke(main, ["--log-level", "DEBUG", "analyze", str(sample_coverage_data)])
         assert result.exit_code == 0
-        
+
         # Test text format ignores output file
         output_file = tmp_path / "ignored.txt"
         result = runner.invoke(
@@ -76,14 +76,14 @@ class TestCLI:
         )
         assert result.exit_code == 0
         assert not output_file.exists() or output_file.stat().st_size == 0
-        
+
         # Test with log file
         log_file = tmp_path / "testiq.log"
         result = runner.invoke(
             main, ["--log-file", str(log_file), "analyze", str(sample_coverage_data)]
         )
         assert result.exit_code == 0
-        
+
         # Test save baseline
         baseline_file = tmp_path / "test_baseline"
         result = runner.invoke(
@@ -91,7 +91,7 @@ class TestCLI:
         )
         assert result.exit_code == 0
         assert "saved" in result.output.lower()
-        
+
         # Test custom config file
         config_file = tmp_path / "testiq.yaml"
         config_file.write_text("""
@@ -131,7 +131,7 @@ performance:
             assert "exact_duplicates" in data
             assert "subset_duplicates" in data
             assert "similar_tests" in data
-        
+
         # Test JSON to stdout
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "json"])
         assert result.exit_code == 0
@@ -146,7 +146,7 @@ performance:
                 assert "{" in output and "}" in output
         else:
             assert len(output) > 0
-        
+
         # Test with all options
         output_file2 = tmp_path / "full_report.json"
         result = runner.invoke(
@@ -164,7 +164,7 @@ performance:
         )
         assert result.exit_code == 0
         assert output_file2.exists()
-        
+
         # Test CSV format
         output_file3 = tmp_path / "report.csv"
         result = runner.invoke(
@@ -201,7 +201,7 @@ performance:
         # Test 1: Non-existent file
         result = runner.invoke(main, ["analyze", "nonexistent.json"])
         assert result.exit_code != 0
-        
+
         # Test 2: Invalid JSON
         bad_file = tmp_path / "bad.json"
         bad_file.write_text("not valid json {")
@@ -247,7 +247,7 @@ class TestCLIIntegration:
             assert len(data["exact_duplicates"]) >= 1
             duplicates = data["exact_duplicates"][0]
             assert set(duplicates) == {"test_a", "test_b"}
-        
+
         # Test 2: Threshold parameter affects similarity results
         output_low = tmp_path / "low_threshold.json"
         output_high = tmp_path / "high_threshold.json"
@@ -305,7 +305,7 @@ class TestCLIFormats:
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "html"])
         assert result.exit_code != 0
         assert "requires --output" in result.output.lower()
-        
+
         # CSV format requires output file
         result = runner.invoke(main, ["analyze", str(sample_coverage_data), "--format", "csv"])
         assert result.exit_code != 0
@@ -331,7 +331,7 @@ class TestCLIQualityGate:
         )
         assert result.exit_code == 0
         assert "PASSED" in result.output
-        
+
         # Test failing case with duplicates
         coverage_data_fail = {
             "test_a": {"file.py": [1, 2, 3]},
@@ -373,15 +373,15 @@ class TestCLIBaseline:
         baseline_dir = tmp_path / ".testiq" / "baselines"
         baseline_dir.mkdir(parents=True, exist_ok=True)
         monkeypatch.setenv("HOME", str(tmp_path))
-        
+
         # Test listing when empty
         result = runner.invoke(main, ["baseline", "list"])
         assert "No baselines" in result.output or len(result.output) > 0
-        
+
         # Test showing non-existent baseline
         result = runner.invoke(main, ["baseline", "show", "nonexistent"])
         assert result.exit_code != 0 or "not found" in result.output.lower()
-        
+
         # Test deleting non-existent baseline
         result = runner.invoke(main, ["baseline", "delete", "nonexistent", "--force"])
         assert result.exit_code != 0 or "not found" in result.output.lower()

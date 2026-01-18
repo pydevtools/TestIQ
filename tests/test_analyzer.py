@@ -2,7 +2,7 @@
 
 import pytest
 
-from testiq.analyzer import CoverageDuplicateFinder, CoverageData
+from testiq.analyzer import CoverageData, CoverageDuplicateFinder
 
 
 class TestCoverageDuplicateFinder:
@@ -19,12 +19,12 @@ class TestCoverageDuplicateFinder:
         assert finder.tests[0].test_name == "test_1"
         assert ("file1.py", 1) in finder.tests[0].covered_lines
         assert ("file2.py", 10) in finder.tests[0].covered_lines
-        
+
         # Test with many files spanning different modules
         finder.add_test_coverage(
             "test_multifile", {"auth.py": [10, 11, 12], "user.py": [5, 6, 7], "db.py": [100, 101]}
         )
-        
+
         assert len(finder.tests) == 2
         assert finder.tests[1].test_name == "test_multifile"
         assert len(finder.tests[1].covered_lines) == 8  # 3 + 3 + 2 lines
@@ -40,13 +40,13 @@ class TestCoverageDuplicateFinder:
         assert len(duplicates) == 1
         assert len(duplicates[0]) == 3
         assert set(duplicates[0]) == {"test_1", "test_2", "test_3"}
-        
+
         # Scenario 2: No exact duplicates
         finder2 = CoverageDuplicateFinder()
         finder2.add_test_coverage("test_1", {"file.py": [1, 2]})
         finder2.add_test_coverage("test_2", {"file.py": [3, 4]})
         assert len(finder2.find_exact_duplicates()) == 0
-        
+
         # Scenario 3: Subset duplicates
         finder3 = CoverageDuplicateFinder()
         finder3.add_test_coverage("test_minimal", {"file.py": [1, 2, 3]})
@@ -56,7 +56,7 @@ class TestCoverageDuplicateFinder:
         assert subsets[0][0] == "test_minimal"
         assert subsets[0][1] == "test_complete"
         assert subsets[0][2] == pytest.approx(0.333, rel=0.01)
-        
+
         # Scenario 4: No subset duplicates
         assert len(finder2.find_subset_duplicates()) == 0
 
@@ -77,7 +77,7 @@ class TestCoverageDuplicateFinder:
 
         # Should find both pairs
         assert len(similar) >= 2
-        
+
         # Results should be sorted by similarity (descending)
         if len(similar) >= 2:
             assert similar[0][2] >= similar[1][2]

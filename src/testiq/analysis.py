@@ -4,7 +4,7 @@ Provides test quality scoring and intelligent recommendations.
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from testiq.analyzer import CoverageDuplicateFinder
 from testiq.logging_config import get_logger
@@ -129,7 +129,7 @@ class QualityAnalyzer:
         """Add recommendations for exact duplicates."""
         if duplicate_count <= 0:
             return
-        
+
         percentage = (duplicate_count / total_tests) * 100
         if percentage > 20:
             recommendations.append(
@@ -150,7 +150,7 @@ class QualityAnalyzer:
         """Add recommendations for subset duplicates."""
         if subset_count <= 0:
             return
-        
+
         percentage = (subset_count / total_tests) * 100
         if percentage > 15:
             recommendations.append(
@@ -167,7 +167,7 @@ class QualityAnalyzer:
         """Add recommendations for similar tests."""
         if similar_count <= 0:
             return
-        
+
         if similar_count > total_tests:
             recommendations.append(
                 f"⚠️ Consider refactoring {similar_count} similar test pairs - high overlap detected"
@@ -178,7 +178,7 @@ class QualityAnalyzer:
             )
 
     def _add_best_practice_recommendations(
-        self, recommendations: list[str], duplicate_count: int, subset_count: int, 
+        self, recommendations: list[str], duplicate_count: int, subset_count: int,
         similar_count: int, total_tests: int
     ) -> None:
         """Add best practice recommendations."""

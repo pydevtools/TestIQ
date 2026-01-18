@@ -282,8 +282,9 @@ class CoverageDuplicateFinder:
         Returns:
             Markdown formatted report
         """
-        from testiq import __version__
         from datetime import datetime
+
+        from testiq import __version__
 
         report_lines = ["# Test Duplication Report\n"]
         report_lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

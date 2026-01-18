@@ -13,12 +13,15 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from testiq import __version__
 from testiq.analysis import QualityAnalyzer, RecommendationEngine
 from testiq.analyzer import CoverageDuplicateFinder
-from testiq.cicd import BaselineManager, QualityGate, QualityGateChecker, TrendTracker, get_exit_code
+from testiq.cicd import (
+    BaselineManager,
+    QualityGate,
+    QualityGateChecker,
+)
 from testiq.config import Config, load_config
 from testiq.exceptions import TestIQError
 from testiq.logging_config import get_logger, setup_logging
@@ -113,13 +116,13 @@ def _load_and_validate_coverage(coverage_file: Path, cfg: Config) -> dict:
     """Load and validate coverage data from file."""
     validated_path = validate_file_path(coverage_file)
     check_file_size(validated_path, cfg.security.max_file_size)
-    
+
     with open(validated_path) as f:
         coverage_data = json.load(f)
-    
+
     validate_coverage_data(coverage_data, cfg.security.max_tests)
     logger.info(f"Loaded {len(coverage_data)} tests from coverage file")
-    
+
     return coverage_data
 
 
@@ -131,10 +134,10 @@ def _create_finder(cfg: Config, coverage_data: dict) -> CoverageDuplicateFinder:
         enable_caching=cfg.performance.enable_caching,
         cache_dir=cfg.performance.cache_dir,
     )
-    
+
     for test_name, test_coverage in coverage_data.items():
         finder.add_test_coverage(test_name, test_coverage)
-    
+
     return finder
 
 
@@ -149,20 +152,20 @@ def _check_quality_gate(
     """Check quality gate and return exit code."""
     if not quality_gate:
         return 0
-    
+
     gate = QualityGate(
         max_duplicates=max_duplicates,
         fail_on_increase=baseline is not None,
     )
     checker = QualityGateChecker(gate)
-    
+
     baseline_result = None
     if baseline:
         baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
         baseline_result = baseline_mgr.load(baseline.stem)
-    
+
     passed, details = checker.check(finder, threshold, baseline_result)
-    
+
     if not passed:
         console.print("\n[red]✗ Quality Gate FAILED[/red]")
         for failure in details["failures"]:
@@ -182,13 +185,13 @@ def _save_baseline_if_requested(
     """Save baseline file if requested."""
     if not save_baseline:
         return
-    
+
     from testiq.cicd import AnalysisResult
-    
+
     exact_dups = finder.find_exact_duplicates()
     duplicate_count = sum(len(g) - 1 for g in exact_dups)
     total_tests = len(finder.tests)
-    
+
     result = AnalysisResult(
         timestamp=datetime.now().isoformat(),
         total_tests=total_tests,
@@ -199,7 +202,7 @@ def _save_baseline_if_requested(
         duplicate_percentage=(duplicate_count / total_tests * 100) if total_tests > 0 else 0,
         threshold=threshold,
     )
-    
+
     baseline_mgr = BaselineManager(Path.home() / TESTIQ_CONFIG_DIR / "baselines")
     baseline_mgr.save(result, save_baseline.stem)
     console.print(f"[green]✓ Baseline saved: {save_baseline}[/green]")
@@ -220,7 +223,7 @@ def _generate_output(
         html_gen = HTMLReportGenerator(finder)
         html_gen.generate(output, threshold=threshold)
         console.print(f"[green]✓ HTML report saved to {output}[/green]")
-    
+
     elif format == "csv":
         if not output:
             console.print("[red]Error: CSV format requires --output[/red]")
@@ -228,7 +231,7 @@ def _generate_output(
         csv_gen = CSVReportGenerator(finder)
         csv_gen.generate_summary(output, threshold=threshold)
         console.print(f"[green]✓ CSV report saved to {output}[/green]")
-    
+
     elif format == "json":
         stats = finder.get_statistics(threshold)
         result = {
@@ -251,24 +254,24 @@ def _generate_output(
             "statistics": stats,
         }
         output_text = json.dumps(result, indent=2)
-        
+
         if output:
             validated_output = sanitize_output_path(output)
             validated_output.write_text(output_text)
             console.print(f"[green]✓ JSON report saved to {validated_output}[/green]")
         else:
             console.print(output_text)
-    
+
     elif format == "markdown":
         output_text = finder.generate_report(threshold)
-        
+
         if output:
             validated_output = sanitize_output_path(output)
             validated_output.write_text(output_text)
             console.print(f"[green]✓ Report saved to {validated_output}[/green]")
         else:
             console.print(output_text)
-    
+
     else:  # text format with rich
         if output:
             console.print("[yellow]Warning: --output ignored for text format[/yellow]")
@@ -352,21 +355,21 @@ def analyze(
     try:
         # Load and validate coverage data
         coverage_data = _load_and_validate_coverage(coverage_file, cfg)
-        
+
         # Create and populate finder
         finder = _create_finder(cfg, coverage_data)
-        
+
         # Check quality gate
         exit_code = _check_quality_gate(
             quality_gate, max_duplicates, baseline, finder, threshold, console
         )
-        
+
         # Save baseline if requested
         _save_baseline_if_requested(save_baseline, finder, threshold, console)
-        
+
         # Generate output
         _generate_output(format, output, finder, threshold, console)
-        
+
         sys.exit(exit_code)
 
     except TestIQError as e:
@@ -476,18 +479,18 @@ def demo(output_dir: Path | None) -> None:
     """
     import json
     from pathlib import Path
-    
+
     console.print("[cyan]Running TestIQ demo with AI-generated-tests example...[/cyan]\n")
-    
+
     # Try to find the examples directory
     examples_dir = None
-    
+
     # Method 1: Check if running from source (development mode)
     source_examples = Path(__file__).parent.parent.parent.parent / "examples" / "ai-generated-tests"
     if source_examples.exists() and (source_examples / "coverage.json").exists():
         examples_dir = source_examples
         console.print(f"[dim]Using examples from source: {examples_dir}[/dim]")
-    
+
     # Method 2: Check installed package (Python 3.9+ importlib.resources)
     if not examples_dir:
         try:
@@ -499,7 +502,7 @@ def demo(output_dir: Path | None) -> None:
                     console.print(f"[dim]Using examples from package: {examples_dir}[/dim]")
         except Exception:
             pass
-    
+
     if not examples_dir or not (examples_dir / "coverage.json").exists():
         console.print("[yellow]⚠ AI-generated-tests example not found. Using minimal sample data.[/yellow]\n")
         # Fallback to simple demo
@@ -515,39 +518,39 @@ def demo(output_dir: Path | None) -> None:
         finder.add_test_coverage("test_user_login_minimal", {SAMPLE_AUTH_FILE: [10, 11, 12]})
         display_results(finder, threshold=0.3)
         return
-    
+
     # Load the AI-generated-tests coverage data
     coverage_file = examples_dir / "coverage.json"
     console.print(f"[green]✓[/green] Loading coverage data from: {coverage_file}\n")
-    
+
     with open(coverage_file) as f:
         coverage_data = json.load(f)
-    
+
     # Analyze using TestIQ
     finder = CoverageDuplicateFinder(enable_parallel=True, enable_caching=True)
-    
+
     for test_name, test_coverage in coverage_data.items():
         finder.add_test_coverage(test_name, test_coverage)
-    
+
     console.print(f"[green]✓[/green] Loaded {len(coverage_data)} tests\n")
-    
+
     # Display terminal results
     display_results(finder, threshold=0.3)
-    
+
     # Generate HTML report
     if output_dir is None:
         output_dir = Path.cwd()
     else:
         output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     output_file = output_dir / "testiq-demo-report.html"
-    console.print(f"\n[cyan]Generating HTML report...[/cyan]")
-    
+    console.print("\n[cyan]Generating HTML report...[/cyan]")
+
     html_gen = HTMLReportGenerator(finder)
     html_gen.generate(output_file, threshold=0.3)
-    
+
     console.print(f"[green]✓[/green] HTML report saved to: {output_file}")
-    console.print(f"\n[cyan]💡 Open the report in your browser:[/cyan]")
+    console.print("\n[cyan]💡 Open the report in your browser:[/cyan]")
     console.print(f"   file://{output_file.absolute()}\n")
 
 

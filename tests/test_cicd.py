@@ -86,7 +86,7 @@ class TestQualityGateChecker:
         assert passed is True
         assert details["passed"] is True
         assert len(details["failures"]) == 0
-        
+
         # Test fails when exceeding max duplicates
         gate_fail_max = QualityGate(max_duplicates=0)
         checker_fail_max = QualityGateChecker(gate_fail_max)
@@ -95,19 +95,19 @@ class TestQualityGateChecker:
         assert details["passed"] is False
         assert len(details["failures"]) > 0
         assert any("exact duplicates" in f.lower() for f in details["failures"])
-        
+
         # Test passes when under max duplicates
         gate_pass_max = QualityGate(max_duplicates=10)
         checker_pass_max = QualityGateChecker(gate_pass_max)
         passed, _ = checker_pass_max.check(sample_finder, 0.9)
         assert passed is True
-        
+
         # Test fails when exceeding max percentage
         gate_fail_pct = QualityGate(max_duplicate_percentage=5.0)
         checker_fail_pct = QualityGateChecker(gate_fail_pct)
         passed, _ = checker_fail_pct.check(sample_finder, 0.9)
         assert passed is False
-        
+
         # Test fails on increase from baseline
         gate_increase = QualityGate(fail_on_increase=True)
         checker_increase = QualityGateChecker(gate_increase)

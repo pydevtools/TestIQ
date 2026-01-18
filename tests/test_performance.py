@@ -3,7 +3,6 @@ Tests for performance module.
 """
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -109,13 +108,13 @@ class TestCacheManager:
         manager.set("key1", {"value": 1})
         manager.set("key2", {"value": 2})
         manager.set("key3", {"value": 3})
-        
+
         # Verify files exist
         assert len(list(tmp_path.glob("*.cache"))) == 3
-        
+
         # Clear cache
         manager.clear()
-        
+
         # Verify files are gone
         assert len(list(tmp_path.glob("*.cache"))) == 0
 
@@ -136,13 +135,13 @@ class TestStreamingJSONParser:
             "test2": {"file2.py": [10, 20]},
             "test3": {"file3.py": [5, 6]},
         }
-        
+
         json_file = tmp_path / "coverage.json"
         json_file.write_text(json.dumps(coverage_data))
-        
+
         parser = StreamingJSONParser()
         results = list(parser.parse_coverage_file(json_file))
-        
+
         assert len(results) == 3
         assert results[0][0] in coverage_data
         assert results[1][0] in coverage_data
@@ -151,20 +150,20 @@ class TestStreamingJSONParser:
     def test_parse_coverage_file_chunked(self, tmp_path):
         """Test parsing with custom chunk size."""
         coverage_data = {f"test{i}": {"file.py": [i]} for i in range(10)}
-        
+
         json_file = tmp_path / "coverage.json"
         json_file.write_text(json.dumps(coverage_data))
-        
+
         parser = StreamingJSONParser()
         results = list(parser.parse_coverage_file(json_file, chunk_size=3))
-        
+
         assert len(results) == 10
 
     def test_parse_invalid_json(self, tmp_path):
         """Test parsing invalid JSON."""
         json_file = tmp_path / "invalid.json"
         json_file.write_text("{ invalid json }")
-        
+
         parser = StreamingJSONParser()
         with pytest.raises(AnalysisError, match="Invalid JSON"):
             list(parser.parse_coverage_file(json_file))
@@ -173,7 +172,7 @@ class TestStreamingJSONParser:
         """Test parsing JSON that's not a dict."""
         json_file = tmp_path / "list.json"
         json_file.write_text("[1, 2, 3]")
-        
+
         parser = StreamingJSONParser()
         with pytest.raises(AnalysisError, match="must contain a dictionary"):
             list(parser.parse_coverage_file(json_file))
@@ -182,10 +181,10 @@ class TestStreamingJSONParser:
         """Test parsing empty coverage data."""
         json_file = tmp_path / "empty.json"
         json_file.write_text("{}")
-        
+
         parser = StreamingJSONParser()
         results = list(parser.parse_coverage_file(json_file))
-        
+
         assert len(results) == 0
 
 
@@ -207,10 +206,10 @@ class TestParallelProcessor:
         """Test sequential processing when disabled."""
         processor = ParallelProcessor(enabled=False)
         items = [1, 2, 3, 4, 5]
-        
+
         def square(x):
             return x * x
-        
+
         results = processor.map(square, items)
         assert results == [1, 4, 9, 16, 25]
 
@@ -218,10 +217,10 @@ class TestParallelProcessor:
         """Test parallel processing with threads."""
         processor = ParallelProcessor(max_workers=2, use_processes=False, enabled=True)
         items = [1, 2, 3, 4, 5]
-        
+
         def square(x):
             return x * x
-        
+
         results = processor.map(square, items)
         assert sorted(results) == [1, 4, 9, 16, 25]
 
@@ -230,10 +229,10 @@ class TestParallelProcessor:
         # Test 1: Parallel processing with processes
         processor = ParallelProcessor(max_workers=2, use_processes=True, enabled=True)
         items = [1, 2, 3, 4, 5]
-        
+
         def local_square(x):
             return x * x
-        
+
         results = processor.map(local_square, items)
         # May fail and fall back to sequential, so just check it completes
         assert results is not None
@@ -241,12 +240,12 @@ class TestParallelProcessor:
 
         # Test 2: Error handling in parallel processing
         processor2 = ParallelProcessor(max_workers=2, enabled=True)
-        
+
         def failing_func(x):
             if x == 3:
                 raise ValueError("Test error")
             return x * x
-        
+
         results2 = processor2.map(failing_func, items)
         # Should have None for failed item
         assert None in results2
@@ -258,11 +257,11 @@ class TestParallelProcessor:
     def test_map_edge_cases(self):
         """Test processing edge cases: empty list and single item."""
         processor = ParallelProcessor(enabled=True)
-        
+
         # Test 1: Empty list
         results_empty = processor.map(lambda x: x, [])
         assert results_empty == []
-        
+
         # Test 2: Single item (uses sequential)
         results_single = processor.map(lambda x: x * 2, [5])
         assert results_single == [10]
@@ -316,12 +315,12 @@ class TestComputeSimilarity:
         """Test that similarity computation is cached."""
         set1 = frozenset([1, 2, 3])
         set2 = frozenset([2, 3, 4])
-        
+
         # First call
         result1 = compute_similarity(set1, set2)
         # Second call should use cache
         result2 = compute_similarity(set1, set2)
-        
+
         assert result1 == result2
 
 

@@ -1,8 +1,6 @@
 """Tests for coverage converter module."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -27,9 +25,9 @@ class TestConvertPytestCoverage:
                 }
             }
         }
-        
+
         result = convert_pytest_coverage(coverage_data)
-        
+
         assert "all_tests_aggregated" in result
         assert len(result["all_tests_aggregated"]) == 2
         assert sorted(result["all_tests_aggregated"]["src/module.py"]) == [1, 2, 3, 5, 10]
@@ -38,7 +36,7 @@ class TestConvertPytestCoverage:
     def test_missing_files_key(self):
         """Test error handling for missing 'files' key."""
         coverage_data = {}
-        
+
         with pytest.raises(ValueError, match="missing 'files' key"):
             convert_pytest_coverage(coverage_data)
 
@@ -51,7 +49,7 @@ class TestConvertPytestCoverage:
                 }
             }
         }
-        
+
         result = convert_pytest_coverage(coverage_data)
         assert result == {}
 
@@ -64,14 +62,14 @@ class TestConvertPytestCoverage:
                 }
             }
         }
-        
+
         result = convert_pytest_coverage(coverage_data)
         assert result == {}
 
     def test_empty_coverage(self):
         """Test handling of empty coverage data."""
         coverage_data = {"files": {}}
-        
+
         result = convert_pytest_coverage(coverage_data)
         assert result == {}
 
@@ -84,7 +82,7 @@ class TestConvertPytestCoverage:
                 }
             }
         }
-        
+
         result = convert_pytest_coverage(coverage_data)
         assert result["all_tests_aggregated"]["src/module.py"] == [1, 2, 3, 5, 10]
 
@@ -107,9 +105,9 @@ class TestConvertPytestContexts:
                 }
             }
         }
-        
+
         result = convert_pytest_contexts(coverage_data)
-        
+
         assert "test_foo" in result
         assert "test_bar" in result
         assert result["test_foo"]["src/module.py"] == [1, 2, 3]
@@ -127,9 +125,9 @@ class TestConvertPytestContexts:
                 }
             }
         }
-        
+
         result = convert_pytest_contexts(coverage_data)
-        
+
         # Should fall back to aggregated format
         assert "all_tests_aggregated" in result
 
@@ -148,9 +146,9 @@ class TestConvertPytestContexts:
                 }
             }
         }
-        
+
         result = convert_pytest_contexts(coverage_data)
-        
+
         # Empty context should be skipped
         assert "" not in result
         assert "test_foo" in result
@@ -167,9 +165,9 @@ class TestConvertPytestContexts:
                 }
             }
         }
-        
+
         result = convert_pytest_contexts(coverage_data)
-        
+
         # Should fall back to aggregated format
         assert "all_tests_aggregated" in result
 
@@ -189,18 +187,19 @@ class TestCLI:
             }
         }
         coverage_file.write_text(json.dumps(coverage_data))
-        
+
         # Import and run CLI
-        from testiq.coverage_converter import main
         from click.testing import CliRunner
-        
+
+        from testiq.coverage_converter import main
+
         runner = CliRunner()
         output_file = tmp_path / "output.json"
         result = runner.invoke(main, [str(coverage_file), "-o", str(output_file)])
-        
+
         assert result.exit_code == 0
         assert output_file.exists()
-        
+
         # Verify output
         output_data = json.loads(output_file.read_text())
         assert "all_tests_aggregated" in output_data
@@ -220,20 +219,21 @@ class TestCLI:
             }
         }
         coverage_file.write_text(json.dumps(coverage_data))
-        
-        from testiq.coverage_converter import main
+
         from click.testing import CliRunner
-        
+
+        from testiq.coverage_converter import main
+
         runner = CliRunner()
         output_file = tmp_path / "output.json"
         result = runner.invoke(
             main,
             [str(coverage_file), "-o", str(output_file), "--with-contexts"]
         )
-        
+
         assert result.exit_code == 0
         assert output_file.exists()
-        
+
         # Verify output has contexts
         output_data = json.loads(output_file.read_text())
         assert "test_foo" in output_data
@@ -250,16 +250,17 @@ class TestCLI:
             }
         }
         coverage_file.write_text(json.dumps(coverage_data))
-        
+
         # Change to tmp directory
         monkeypatch.chdir(tmp_path)
-        
-        from testiq.coverage_converter import main
+
         from click.testing import CliRunner
-        
+
+        from testiq.coverage_converter import main
+
         runner = CliRunner()
         result = runner.invoke(main, [str(coverage_file)])
-        
+
         assert result.exit_code == 0
         assert (tmp_path / "testiq_coverage.json").exists()
 
@@ -267,12 +268,13 @@ class TestCLI:
         """Test CLI handles invalid JSON."""
         coverage_file = tmp_path / "invalid.json"
         coverage_file.write_text("not valid json")
-        
-        from testiq.coverage_converter import main
+
         from click.testing import CliRunner
-        
+
+        from testiq.coverage_converter import main
+
         runner = CliRunner()
         result = runner.invoke(main, [str(coverage_file)])
-        
+
         assert result.exit_code == 1
         assert "Error" in result.output

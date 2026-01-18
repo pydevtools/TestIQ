@@ -2,7 +2,6 @@
 Tests for reporting module (HTML and CSV generators).
 """
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -71,7 +70,7 @@ class TestHTMLReportGenerator:
             # Check for test names
             assert "test_login_1" in content
             assert "test_login_2" in content
-            
+
             # Check for stats cards structure
             assert "class=\"stats\"" in content
             assert "class=\"stat-card" in content
@@ -108,7 +107,7 @@ class TestCSVReportGenerator:
     def test_csv_generation_and_format(self, sample_finder):
         """Test CSV generation and validate format is parseable."""
         import csv
-        
+
         generator = CSVReportGenerator(sample_finder)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
@@ -133,7 +132,7 @@ class TestCSVReportGenerator:
 
                 # Should have at least one row
                 assert len(rows) > 0
-                
+
                 # Should have expected columns
                 assert "Group" in reader.fieldnames
                 assert "Test Name" in reader.fieldnames

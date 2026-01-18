@@ -126,7 +126,7 @@ print("\n" + "=" * 60)
 print("TEST 5: Generate Reports")
 print("=" * 60)
 
-from testiq.reporting import HTMLReportGenerator, CSVReportGenerator
+from testiq.reporting import CSVReportGenerator, HTMLReportGenerator
 
 # HTML Report
 html_gen = HTMLReportGenerator(finder2)
@@ -151,8 +151,7 @@ print("\n" + "=" * 60)
 print("TEST 6: Quality Gates & Baselines")
 print("=" * 60)
 
-from testiq.cicd import QualityGate, QualityGateChecker, BaselineManager
-from datetime import datetime
+from testiq.cicd import QualityGate, QualityGateChecker
 
 # Quality Gate
 gate = QualityGate(
@@ -178,7 +177,8 @@ print("\n" + "=" * 60)
 print("TEST 7: Plugin System & Hooks")
 print("=" * 60)
 
-from testiq.plugins import register_hook, trigger_hook, HookType, HookContext, clear_hooks
+from testiq.plugins import HookContext, HookType, clear_hooks, register_hook, trigger_hook
+
 
 # Register a custom hook
 def my_hook(ctx: HookContext):
@@ -198,7 +198,7 @@ print("\n" + "=" * 60)
 print("TEST 8: Configuration System")
 print("=" * 60)
 
-from testiq.config import Config, load_config
+from testiq.config import Config
 
 config = Config()
 print(f"\n✓ Default log level: {config.log.level}")
@@ -212,21 +212,21 @@ print("\n" + "=" * 60)
 print("TEST 9: Security Validation")
 print("=" * 60)
 
-from testiq.security import validate_file_path, check_file_size, validate_coverage_data
+from testiq.security import check_file_size, validate_coverage_data, validate_file_path
 
 try:
     # Valid file
     path = validate_file_path(sample_file)
     print(f"✓ File validation passed: {path.name}")
-    
+
     # Check size
     check_file_size(path)
     print("✓ File size check passed")
-    
+
     # Validate coverage data
     validate_coverage_data(coverage_data)
     print("✓ Coverage data validation passed")
-    
+
 except Exception as e:
     print(f"✗ Validation error: {e}")
 

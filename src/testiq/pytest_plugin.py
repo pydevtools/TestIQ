@@ -20,7 +20,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Item
@@ -102,10 +101,10 @@ class TestIQPlugin:
         return delimiter in after_first
 
     def _process_docstring_line(
-        self, 
-        line_num: int, 
-        trimmed: str, 
-        in_docstring: bool, 
+        self,
+        line_num: int,
+        trimmed: str,
+        in_docstring: bool,
         docstring_delimiter: str,
         docstring_lines: set
     ) -> tuple[bool, str]:
@@ -115,7 +114,7 @@ class TestIQPlugin:
             if in_docstring:
                 docstring_lines.add(line_num)
             return in_docstring, docstring_delimiter
-        
+
         if not in_docstring:
             # Starting a docstring
             docstring_lines.add(line_num)
@@ -126,7 +125,7 @@ class TestIQPlugin:
             # Ending a docstring
             docstring_lines.add(line_num)
             return False, ''
-        
+
         # Inside a multi-line docstring with different delimiter
         docstring_lines.add(line_num)
         return in_docstring, docstring_delimiter
@@ -155,7 +154,7 @@ class TestIQPlugin:
         # Read and cache the file if not already cached
         if filename not in self.file_cache:
             try:
-                with open(filename, 'r', encoding='utf-8') as f:
+                with open(filename, encoding='utf-8') as f:
                     lines = f.readlines()
                     self.file_cache[filename] = {i + 1: line for i, line in enumerate(lines)}
             except Exception:
@@ -202,7 +201,7 @@ class TestIQPlugin:
         abs_path = str(Path.cwd() / file_path)
         if abs_path not in self.file_cache:
             try:
-                with open(abs_path, 'r', encoding='utf-8') as f:
+                with open(abs_path, encoding='utf-8') as f:
                     file_lines = f.readlines()
                     self.file_cache[abs_path] = {i + 1: line for i, line in enumerate(file_lines)}
             except Exception:
@@ -229,15 +228,15 @@ class TestIQPlugin:
         for check_line in range(line_num - 1, 0, -1):
             if check_line not in file_content:
                 break
-            
+
             line_text = file_content[check_line]
-            
+
             if self._is_definition_line(line_text):
                 return check_line
-            
+
             if self._should_stop_search(line_text, check_line, line_num):
                 break
-        
+
         return None
 
     def _add_definition_lines(self, coverage: Dict[str, List[int]]) -> None:
@@ -250,17 +249,17 @@ class TestIQPlugin:
         for file_path, lines in coverage.items():
             if not lines:
                 continue
-            
+
             file_content = self._get_file_content(file_path)
             if not file_content:
                 continue
-            
+
             definition_lines = set()
             for line_num in lines:
                 def_line = self._find_definition_for_line(line_num, file_content)
                 if def_line:
                     definition_lines.add(def_line)
-            
+
             coverage[file_path].extend(definition_lines)
 
     def pytest_sessionfinish(self, session: Any) -> None:

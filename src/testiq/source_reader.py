@@ -9,11 +9,11 @@ from typing import Optional
 
 class SourceCodeReader:
     """Read and cache source code files for display in reports."""
-    
+
     def __init__(self) -> None:
         """Initialize the source code reader."""
         self._cache: dict[str, dict[int, str]] = {}
-    
+
     def read_file(self, filepath: str) -> Optional[dict[int, str]]:
         """
         Read a source file and return line-by-line content.
@@ -27,11 +27,11 @@ class SourceCodeReader:
         """
         if filepath in self._cache:
             return self._cache[filepath]
-        
+
         try:
             file_path = Path(filepath)
             if file_path.exists() and file_path.is_file():
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(file_path, encoding='utf-8', errors='ignore') as f:
                     lines = f.readlines()
                     result = {
                         i + 1: line.rstrip() for i, line in enumerate(lines)
@@ -40,9 +40,9 @@ class SourceCodeReader:
                     return result
         except Exception:
             pass
-        
+
         return None
-    
+
     def read_multiple(self, filepaths: list[str]) -> dict[str, dict[int, str]]:
         """
         Read multiple source files.

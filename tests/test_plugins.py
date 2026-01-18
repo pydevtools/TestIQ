@@ -54,7 +54,7 @@ class TestHookType:
         # Test 1: Hook types have string values
         assert isinstance(HookType.BEFORE_ANALYSIS.value, str)
         assert HookType.BEFORE_ANALYSIS.value == "before_analysis"
-        
+
         # Test 2: Unregistering nonexistent hook doesn't raise error
         manager = PluginManager()
 
@@ -71,7 +71,7 @@ class TestPluginManager:
     def test_hook_registration_scenarios(self):
         """Test hook registration including single and multiple hooks."""
         manager = PluginManager()
-        
+
         # Test 1: Register single hook
         called = []
 

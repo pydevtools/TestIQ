@@ -7,7 +7,6 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
 
 from testiq.analyzer import CoverageDuplicateFinder
 from testiq.logging_config import get_logger
@@ -33,14 +32,14 @@ class HTMLReportGenerator:
                     file_coverage[filename] = {'lines': set(), 'tests': set()}
                 file_coverage[filename]['lines'].add(line)
                 file_coverage[filename]['tests'].add(test.test_name)
-        
+
         # Build JS code
         js_lines = []
         for filename, data in sorted(file_coverage.items()):
             lines_count = len(data['lines'])
             tests_count = len(data['tests'])
             js_lines.append(f"coverageByFile[{json.dumps(filename)}] = {{lines: {lines_count}, tests: {tests_count}}};")
-        
+
         return '\n        '.join(js_lines)
 
     def generate(
@@ -57,7 +56,6 @@ class HTMLReportGenerator:
             title: Report title
             threshold: Similarity threshold for analysis (default: 0.3 = 30%)
         """
-        from testiq import __version__
 
         logger.info(f"Generating HTML report: {output_path}")
         logger.info(f"  Threshold: {threshold:.1%}")
@@ -89,18 +87,18 @@ class HTMLReportGenerator:
         source_reader = SourceCodeReader()
         all_files = set()
         unique_lines_covered = set()
-        
+
         for test in self.finder.tests:
             for filename, line in test.covered_lines:
                 all_files.add(filename)
                 unique_lines_covered.add((filename, line))
-        
+
         source_code_map = source_reader.read_multiple(list(all_files))
-        
+
         total_lines_in_files = sum(len(lines) for lines in source_code_map.values())
         lines_covered = len(unique_lines_covered)
         coverage_percentage = (lines_covered / total_lines_in_files * 100) if total_lines_in_files > 0 else 0
-        
+
         return source_code_map, unique_lines_covered, coverage_percentage
 
     def _generate_html(
@@ -114,13 +112,13 @@ class HTMLReportGenerator:
         """Generate HTML content."""
         total_tests = len(self.finder.tests)
         duplicate_count = self.finder.get_duplicate_count()
-        
+
         # Calculate indices for JavaScript
         exact_dups_count = len(exact_dups)
         subset_dups_count = len(subset_dups)
         subset_start_idx = exact_dups_count
         subset_end_idx = exact_dups_count + subset_dups_count
-        
+
         # Collect and read source files for the split-screen view
         source_code_map, unique_lines_covered, coverage_percentage = self._prepare_coverage_data()
 
@@ -992,12 +990,12 @@ class HTMLReportGenerator:
         }});
         </script>
 """
-        
+
         # Add modal and JavaScript for split-screen view
         test_coverage_map = {test.test_name: test.covered_lines for test in self.finder.tests}
-        
+
         coverage_data = []
-        
+
         # Add exact duplicates data (first in order)
         for group in exact_dups:
             if len(group) < 2:
@@ -1007,26 +1005,26 @@ class HTMLReportGenerator:
             test2 = group[1]
             test1_cov = test_coverage_map.get(test1, set())
             test2_cov = test_coverage_map.get(test2, set())
-            
+
             # Convert to dict format
             test1_dict = {}
             for filename, line in test1_cov:
                 if filename not in test1_dict:
                     test1_dict[filename] = []
                 test1_dict[filename].append(line)
-            
+
             test2_dict = {}
             for filename, line in test2_cov:
                 if filename not in test2_dict:
                     test2_dict[filename] = []
                 test2_dict[filename].append(line)
-            
+
             # Sort line numbers
             for lines in test1_dict.values():
                 lines.sort()
             for lines in test2_dict.values():
                 lines.sort()
-            
+
             coverage_data.append({
                 "subset": test1_dict,
                 "superset": test2_dict,
@@ -1034,31 +1032,31 @@ class HTMLReportGenerator:
                 "subsetName": test1,
                 "supersetName": test2
             })
-        
+
         # Add subset duplicates data (second in order)
         for subset_test, superset_test, ratio in subset_dups:
             subset_cov = test_coverage_map.get(subset_test, set())
             superset_cov = test_coverage_map.get(superset_test, set())
-            
+
             # Convert to dict format
             subset_dict = {}
             for filename, line in subset_cov:
                 if filename not in subset_dict:
                     subset_dict[filename] = []
                 subset_dict[filename].append(line)
-            
+
             superset_dict = {}
             for filename, line in superset_cov:
                 if filename not in superset_dict:
                     superset_dict[filename] = []
                 superset_dict[filename].append(line)
-            
+
             # Sort line numbers
             for lines in subset_dict.values():
                 lines.sort()
             for lines in superset_dict.values():
                 lines.sort()
-            
+
             coverage_data.append({
                 "subset": subset_dict,
                 "superset": superset_dict,
@@ -1066,31 +1064,31 @@ class HTMLReportGenerator:
                 "subsetName": subset_test,
                 "supersetName": superset_test
             })
-        
+
         # Add similar tests data (third in order)
         for test1, test2, similarity in similar:
             test1_cov = test_coverage_map.get(test1, set())
             test2_cov = test_coverage_map.get(test2, set())
-            
+
             # Convert to dict format
             test1_dict = {}
             for filename, line in test1_cov:
                 if filename not in test1_dict:
                     test1_dict[filename] = []
                 test1_dict[filename].append(line)
-            
+
             test2_dict = {}
             for filename, line in test2_cov:
                 if filename not in test2_dict:
                     test2_dict[filename] = []
                 test2_dict[filename].append(line)
-            
+
             # Sort line numbers
             for lines in test1_dict.values():
                 lines.sort()
             for lines in test2_dict.values():
                 lines.sort()
-            
+
             coverage_data.append({
                 "subset": test1_dict,
                 "superset": test2_dict,
@@ -1102,7 +1100,7 @@ class HTMLReportGenerator:
         # Serialize JSON data before embedding
         coverage_data_json = json.dumps(coverage_data, ensure_ascii=True)
         source_code_map_json = json.dumps(source_code_map, ensure_ascii=True)
-        
+
         # Escape HTML-breaking tags in JSON strings
         # Even though it's in JSON, the browser's HTML parser will see </script> and break
         coverage_data_json = coverage_data_json.replace('</script>', '<\\/script>').replace('<script', '<\\script')
@@ -1716,8 +1714,9 @@ class CSVReportGenerator:
             output_path: Path to save CSV
             threshold: Similarity threshold (default: 0.3 = 30%)
         """
-        from testiq import __version__
         from datetime import datetime
+
+        from testiq import __version__
 
         logger.info(f"Generating summary CSV: {output_path}")
         logger.info(f"  Threshold: {threshold:.1%}")
