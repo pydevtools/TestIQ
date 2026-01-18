@@ -1,0 +1,411 @@
+{
+  "examples/ai-generated-tests/test_calculator.py::test_addition_basic": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_sum_calculation": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_operation": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_positive_addition": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_difference_calculation": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_product_calculation": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_division_basic": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_quotient_calculation": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_add_positive_only": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_divide_evenly": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_power_basic": {
+    "calculator.py": [
+      27,
+      29
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_power_square": {
+    "calculator.py": [
+      27,
+      29
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_modulo_basic": {
+    "calculator.py": [
+      31,
+      33,
+      35
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_modulo_even": {
+    "calculator.py": [
+      31,
+      33,
+      35
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_simple": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_add_numbers": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_basic_sum": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculator_add": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero": {
+    "calculator.py": [
+      21,
+      23,
+      24
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_power_comprehensive": {
+    "calculator.py": [
+      27,
+      29
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_modulo_comprehensive": {
+    "calculator.py": [
+      31,
+      33,
+      35
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero": {
+    "calculator.py": [
+      31,
+      33,
+      34
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_v1": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_v2": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_v3": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2": {
+    "calculator.py": [
+      13,
+      15
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2": {
+    "calculator.py": [
+      17,
+      19
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_division_v1": {
+    "calculator.py": [
+      21,
+      23,
+      25
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_addition_final": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculator_addition": {
+    "calculator.py": [
+      9,
+      11
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only": {
+    "calculator.py": [
+      9,
+      11,
+      37,
+      39,
+      40
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only": {
+    "calculator.py": [
+      13,
+      15,
+      37,
+      39,
+      41,
+      42
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only": {
+    "calculator.py": [
+      17,
+      19,
+      37,
+      39,
+      41,
+      43,
+      44
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive": {
+    "calculator.py": [
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      23,
+      25,
+      27,
+      29,
+      37,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation": {
+    "calculator.py": [
+      9,
+      11,
+      37,
+      39,
+      40,
+      52,
+      57,
+      58,
+      59,
+      60
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations": {
+    "calculator.py": [
+      9,
+      11,
+      17,
+      19,
+      37,
+      39,
+      40,
+      41,
+      43,
+      44,
+      52,
+      57,
+      58,
+      59,
+      60
+    ]
+  },
+  "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations": {
+    "calculator.py": [
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      23,
+      25,
+      37,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      52,
+      57,
+      58,
+      59,
+      60
+    ]
+  }
+}

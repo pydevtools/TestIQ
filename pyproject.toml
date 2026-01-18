@@ -1,6 +1,6 @@
 [project]
 name = "testiq"
-version = "0.2.0"
+version = "0.2.1"
 description = "TestIQ - Intelligent test analysis for finding duplicate and redundant tests using coverage analysis"
 readme = "README.md"
 authors = [
@@ -40,6 +40,12 @@ testiq = "testiq.cli:main"
 
 [project.entry-points.pytest11]
 testiq = "testiq.pytest_plugin"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+testiq = ["examples/**/*"]
 
 [project.optional-dependencies]
 dev = [

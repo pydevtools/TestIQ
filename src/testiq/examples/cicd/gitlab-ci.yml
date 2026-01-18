@@ -1,0 +1,308 @@
+# Example: GitLab CI/CD Pipeline with TestIQ Integration
+#
+# This .gitlab-ci.yml demonstrates:
+# - Installing TestIQ in GitLab Runner
+# - Running test analysis with quality gates
+# - Handling failures with proper exit codes
+# - Publishing reports as artifacts
+# - Using baselines with GitLab CI cache
+# - Setting pipeline status based on quality gate results
+#
+# Note: pytest is now included as a TestIQ dependency!
+
+# GitLab CI variables
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  TESTIQ_MAX_DUPLICATES: "10"
+  TESTIQ_THRESHOLD: "0.8"
+
+# Cache pip packages between jobs
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+# Pipeline stages
+stages:
+  - test
+  - analyze
+  - quality-gate
+  - report
+
+# Job: Run tests with coverage
+test:coverage:
+  stage: test
+  image: python:3.11
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    # pytest is now included with testiq!
+    - pip install pytest-cov
+    - pip install -r requirements.txt
+  script:
+    - echo "🧪 Running test suite with coverage..."
+    - pytest --cov=. --cov-report=json:coverage.json --cov-report=term
+  artifacts:
+    paths:
+      - coverage.json
+    expire_in: 1 day
+  only:
+    - branches
+    - merge_requests
+
+# Job: TestIQ analysis
+testiq:analysis:
+  stage: analyze
+  image: python:3.11
+  dependencies:
+    - test:coverage
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install testiq
+  script:
+    - echo "📊 Running TestIQ analysis..."
+    - mkdir -p reports
+    
+    # Generate comprehensive reports
+    - |
+      testiq analyze coverage.json \
+        --format html \
+        --output reports/testiq-report.html \
+        --verbose
+    
+    - |
+      testiq analyze coverage.json \
+        --format csv \
+        --output reports/testiq-summary.csv
+    
+    # Generate quality score
+    - testiq quality-score coverage.json | tee reports/quality-score.txt
+    
+    - echo "✅ Analysis complete"
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 30 days
+  only:
+    - branches
+    - merge_requests
+
+# Job: Quality gate check
+testiq:quality-gate:
+  stage: quality-gate
+  image: python:3.11
+  dependencies:
+    - test:coverage
+    - testiq:analysis
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install testiq
+  script:
+    - echo "🚦 Running quality gate checks..."
+    
+    # Run quality gate with custom error handling
+    - |
+      set +e  # Don't exit on error
+      testiq analyze coverage.json \
+        --quality-gate \
+        --max-duplicates ${TESTIQ_MAX_DUPLICATES} \
+        --threshold ${TESTIQ_THRESHOLD} \
+        --fail-on-increase
+      
+      EXIT_CODE=$?
+      set -e
+      
+      if [ $EXIT_CODE -eq 0 ]; then
+        echo "✅ Quality gate PASSED"
+        exit 0
+      else
+        echo "⚠️ Quality gate FAILED"
+        echo "❌ Too many duplicate tests detected!"
+        echo "📊 See reports in artifacts"
+        
+        # Extract and display quality score
+        if [ -f reports/quality-score.txt ]; then
+          cat reports/quality-score.txt
+        fi
+        
+        # Option 1: Fail pipeline (strict mode)
+        exit 1
+        
+        # Option 2: Allow failure (permissive mode)
+        # exit 0
+      fi
+  
+  # Allow manual retry if quality gate fails
+  retry:
+    max: 0
+  
+  # Make this job optional (pipeline continues even if it fails)
+  # Uncomment to enable:
+  # allow_failure: true
+  
+  artifacts:
+    when: always  # Upload reports even on failure
+    paths:
+      - reports/
+    expire_in: 30 days
+  
+  only:
+    - branches
+    - merge_requests
+
+# Job: Save baseline (main branch only)
+testiq:baseline:
+  stage: report
+  image: python:3.11
+  dependencies:
+    - test:coverage
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install testiq
+  script:
+    - echo "💾 Saving baseline for trend tracking..."
+    
+    # Save baseline with timestamp
+    - BASELINE_NAME="baseline-$(date +%Y%m%d-%H%M%S)"
+    - testiq analyze coverage.json --save-baseline ${BASELINE_NAME}
+    
+    # List all baselines
+    - testiq baseline list
+    
+    # Compare with previous baseline (if exists)
+    - |
+      testiq analyze coverage.json \
+        --compare-baseline production-baseline \
+        --output reports/baseline-comparison.txt || true
+    
+    - echo "✅ Baseline saved: ${BASELINE_NAME}"
+  
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 90 days
+  
+  only:
+    - main
+    - master
+
+# Job: Publish report (Pages)
+pages:
+  stage: report
+  dependencies:
+    - testiq:analysis
+  script:
+    - echo "📤 Publishing TestIQ reports to GitLab Pages..."
+    - mkdir -p public
+    - cp reports/testiq-report.html public/index.html
+    - cp -r reports/* public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 90 days
+  only:
+    - main
+    - master
+
+# Job: Compare with baseline (merge requests only)
+testiq:compare:
+  stage: analyze
+  image: python:3.11
+  dependencies:
+    - test:coverage
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install testiq
+  script:
+    - echo "📊 Comparing with baseline..."
+    
+    # Compare with production baseline
+    - |
+      testiq analyze coverage.json \
+        --compare-baseline production-baseline \
+        --output reports/baseline-comparison.txt || true
+    
+    - |
+      if [ -f reports/baseline-comparison.txt ]; then
+        echo "Baseline comparison:"
+        cat reports/baseline-comparison.txt
+      else
+        echo "No baseline found for comparison"
+      fi
+  
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 7 days
+  
+  only:
+    - merge_requests
+
+# Example: Scheduled quality check (nightly)
+# Uncomment to enable:
+# testiq:scheduled:
+#   stage: analyze
+#   image: python:3.11
+#   before_script:
+#     - python -m venv venv
+#     - source venv/bin/activate
+#     - pip install pytest pytest-cov testiq
+#     - pip install -r requirements.txt
+#   script:
+#     - pytest --cov=. --cov-report=json:coverage.json
+#     - testiq analyze coverage.json --quality-gate --max-duplicates 5
+#   only:
+#     - schedules
+
+# Example: Multi-version testing
+# .test-template: &test-template
+#   stage: test
+#   before_script:
+#     - pip install pytest pytest-cov testiq
+#   script:
+#     - pytest --cov=. --cov-report=json:coverage.json
+#     - testiq quality-score coverage.json
+#
+# test:py39:
+#   <<: *test-template
+#   image: python:3.9
+#
+# test:py311:
+#   <<: *test-template
+#   image: python:3.11
+#
+# test:py312:
+#   <<: *test-template
+#   image: python:3.12
+
+# Example: Manual quality gate override
+testiq:manual-check:
+  stage: quality-gate
+  image: python:3.11
+  dependencies:
+    - test:coverage
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install testiq
+  script:
+    - echo "🔍 Manual quality check..."
+    - testiq analyze coverage.json --format html --output reports/manual-check.html
+    - testiq quality-score coverage.json
+  
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 7 days
+  
+  when: manual  # Only run when manually triggered
+  allow_failure: true
+  
+  only:
+    - branches
+    - merge_requests

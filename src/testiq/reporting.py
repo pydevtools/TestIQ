@@ -115,6 +115,12 @@ class HTMLReportGenerator:
         total_tests = len(self.finder.tests)
         duplicate_count = self.finder.get_duplicate_count()
         
+        # Calculate indices for JavaScript
+        exact_dups_count = len(exact_dups)
+        subset_dups_count = len(subset_dups)
+        subset_start_idx = exact_dups_count
+        subset_end_idx = exact_dups_count + subset_dups_count
+        
         # Collect and read source files for the split-screen view
         source_code_map, unique_lines_covered, coverage_percentage = self._prepare_coverage_data()
 
@@ -630,13 +636,13 @@ class HTMLReportGenerator:
                 <div class="stat-value">{duplicate_count}</div>
                 <div class="stat-label">Duplicates</div>
             </div>
-            <div class="stat-card info" onclick="switchTab('similar')">
-                <div class="stat-value">{len(similar)}</div>
-                <div class="stat-label">Similar Test Pairs</div>
-            </div>
             <div class="stat-card warning" onclick="switchTab('subset')">
                 <div class="stat-value">{len(subset_dups)}</div>
                 <div class="stat-label">Subset Duplicates</div>
+            </div>
+            <div class="stat-card info" onclick="switchTab('similar')">
+                <div class="stat-value">{len(similar)}</div>
+                <div class="stat-label">Similar Test Pairs</div>
             </div>
         </div>
 
@@ -644,8 +650,8 @@ class HTMLReportGenerator:
 
         <div class="tabs">
             <button class="tab active" onclick="switchTab('exact')">🎯 Exact Duplicates ({len(exact_dups)})</button>
-            <button class="tab" onclick="switchTab('similar')">🔍 Similar Tests ({len(similar)})</button>
             <button class="tab" onclick="switchTab('subset')">📊 Subset Duplicates ({len(subset_dups)})</button>
+            <button class="tab" onclick="switchTab('similar')">🔍 Similar Tests ({len(similar)})</button>
         </div>
 
         <div id="exact-content" class="tab-content active">
@@ -669,34 +675,13 @@ class HTMLReportGenerator:
             <div id="exact-table"></div>
         </div>
 
-        <div id="similar-content" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2 style="margin: 0;">🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div class="page-size-selector">
-                        <label for="similar-page-size">Items per page:</label>
-                        <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
-                            <option value="10">10</option>
-                            <option value="20" selected>20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="999999">All</option>
-                        </select>
-                    </div>
-                    <div id="similar-pagination" class="pagination"></div>
-                </div>
-            </div>
-            <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
-            <div id="similar-table"></div>
-        </div>
-
         <div id="subset-content" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h2 style="margin: 0;">📊 Subset Duplicates</h2>
                 <div style="display: flex; align-items: center; gap: 20px;">
                     <div class="page-size-selector">
-                        <label for="subset-page-size">Items per page:</label>
-                        <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
+                        <label for="similar-page-size">Items per page:</label>
+                        <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
                             <option value="10">10</option>
                             <option value="20" selected>20</option>
                             <option value="50">50</option>
@@ -709,6 +694,27 @@ class HTMLReportGenerator:
             </div>
             <p>Tests that are subsets of other tests and may be redundant.</p>
             <div id="subset-table"></div>
+        </div>
+
+        <div id="similar-content" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🔍 Similar Tests (≥{threshold:.0%} overlap)</h2>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="subset-page-size">Items per page:</label>
+                        <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="similar-pagination" class="pagination"></div>
+                </div>
+            </div>
+            <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+            <div id="similar-table"></div>
         </div>
 
         <script>
@@ -735,8 +741,8 @@ class HTMLReportGenerator:
         
         // Data for pagination
         const exactDupsData = {json.dumps([[list(group), i-1] for i, group in enumerate(exact_dups, 1)])};
-        const similarData = {json.dumps([[test1, test2, similarity, len(exact_dups) + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
-        const subsetData = {json.dumps([[subset_test, superset_test, ratio, len(exact_dups) + len(similar) + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
+        const subsetData = {json.dumps([[subset_test, superset_test, ratio, exact_dups_count + i] for i, (subset_test, superset_test, ratio) in enumerate(subset_dups)])};
+        const similarData = {json.dumps([[test1, test2, similarity, subset_end_idx + idx] for idx, (test1, test2, similarity) in enumerate(similar)])};
         
         // Build coverage data per file
         const coverageByFile = {{}};
@@ -1029,40 +1035,8 @@ class HTMLReportGenerator:
                 "supersetName": test2
             })
         
-        # Add similar tests data (second in order)
-        for test1, test2, similarity in similar[:20]:
-            test1_cov = test_coverage_map.get(test1, set())
-            test2_cov = test_coverage_map.get(test2, set())
-            
-            # Convert to dict format
-            test1_dict = {}
-            for filename, line in test1_cov:
-                if filename not in test1_dict:
-                    test1_dict[filename] = []
-                test1_dict[filename].append(line)
-            
-            test2_dict = {}
-            for filename, line in test2_cov:
-                if filename not in test2_dict:
-                    test2_dict[filename] = []
-                test2_dict[filename].append(line)
-            
-            # Sort line numbers
-            for lines in test1_dict.values():
-                lines.sort()
-            for lines in test2_dict.values():
-                lines.sort()
-            
-            coverage_data.append({
-                "subset": test1_dict,
-                "superset": test2_dict,
-                "ratio": similarity,
-                "subsetName": test1,
-                "supersetName": test2
-            })
-        
-        # Add subset duplicates data (third in order)
-        for subset_test, superset_test, ratio in subset_dups[:20]:
+        # Add subset duplicates data (second in order)
+        for subset_test, superset_test, ratio in subset_dups:
             subset_cov = test_coverage_map.get(subset_test, set())
             superset_cov = test_coverage_map.get(superset_test, set())
             
@@ -1091,6 +1065,38 @@ class HTMLReportGenerator:
                 "ratio": ratio,
                 "subsetName": subset_test,
                 "supersetName": superset_test
+            })
+        
+        # Add similar tests data (third in order)
+        for test1, test2, similarity in similar:
+            test1_cov = test_coverage_map.get(test1, set())
+            test2_cov = test_coverage_map.get(test2, set())
+            
+            # Convert to dict format
+            test1_dict = {}
+            for filename, line in test1_cov:
+                if filename not in test1_dict:
+                    test1_dict[filename] = []
+                test1_dict[filename].append(line)
+            
+            test2_dict = {}
+            for filename, line in test2_cov:
+                if filename not in test2_dict:
+                    test2_dict[filename] = []
+                test2_dict[filename].append(line)
+            
+            # Sort line numbers
+            for lines in test1_dict.values():
+                lines.sort()
+            for lines in test2_dict.values():
+                lines.sort()
+            
+            coverage_data.append({
+                "subset": test1_dict,
+                "superset": test2_dict,
+                "ratio": similarity,
+                "subsetName": test1,
+                "supersetName": test2
             })
 
         # Serialize JSON data before embedding
@@ -1128,11 +1134,11 @@ class HTMLReportGenerator:
                 </div>
                 <div class="coverage-info">
                     <div>
-                        <strong>Subset Test:</strong> <span id="subsetName" class="test-name"></span>
+                        <strong id="testLabel1">Test 1:</strong> <span id="subsetName" class="test-name"></span>
                         &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <strong>Superset Test:</strong> <span id="supersetName" class="test-name"></span>
+                        <strong id="testLabel2">Test 2:</strong> <span id="supersetName" class="test-name"></span>
                         &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <strong>Coverage Ratio:</strong> <span id="coverageRatio" class="badge badge-warning"></span>
+                        <strong id="ratioLabel">Similarity:</strong> <span id="coverageRatio" class="badge badge-warning"></span>
                     </div>
                     <div style="margin-top: 10px; padding: 8px; background: #f5f5f5; border-radius: 4px; display: inline-flex; gap: 20px; font-size: 13px;">
                         <span><span style="display: inline-block; width: 16px; height: 16px; background: #c8e6c9; border-radius: 3px; vertical-align: middle;"></span> Both tests executed</span>
@@ -1142,11 +1148,11 @@ class HTMLReportGenerator:
                 </div>
                 <div class="split-view">
                     <div class="file-panel">
-                        <div class="panel-header">📄 Subset Test Coverage</div>
+                        <div class="panel-header" id="panelHeader1">📄 Test 1 Coverage</div>
                         <div id="subsetContent" class="file-content"></div>
                     </div>
                     <div class="file-panel">
-                        <div class="panel-header">📄 Superset Test Coverage</div>
+                        <div class="panel-header" id="panelHeader2">📄 Test 2 Coverage</div>
                         <div id="supersetContent" class="file-content"></div>
                     </div>
                 </div>
@@ -1154,7 +1160,8 @@ class HTMLReportGenerator:
         </div>
 
         <script>
-        const coverageData = """ + coverage_data_json + """;\n        const sourceCode = """ + source_code_map_json + """;\n        let currentData = null;
+        const coverageData = """ + coverage_data_json + """;\n        const sourceCode = """ + source_code_map_json + """;\n        const EXACT_DUPS_COUNT = """ + str(exact_dups_count) + """;\n        const SUBSET_START_IDX = """ + str(subset_start_idx) + """;\n        const SUBSET_END_IDX = """ + str(subset_end_idx) + """;
+        let currentData = null;
         let syncEnabled = true;
         let isScrolling = false;
         
@@ -1163,6 +1170,31 @@ class HTMLReportGenerator:
             if (!data) return;
             
             currentData = data;
+            
+            // Determine if this is a subset comparison or similar test comparison
+            const isSubset = data.ratio < 1.0 && index >= SUBSET_START_IDX && index < SUBSET_END_IDX;
+            const isExact = data.ratio === 1.0;
+            
+            // Update labels based on comparison type
+            if (isSubset) {{
+                document.getElementById('testLabel1').textContent = 'Subset Test:';
+                document.getElementById('testLabel2').textContent = 'Superset Test:';
+                document.getElementById('ratioLabel').textContent = 'Coverage Ratio:';
+                document.getElementById('panelHeader1').textContent = '📄 Subset Test Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Superset Test Coverage';
+            }} else if (isExact) {{
+                document.getElementById('testLabel1').textContent = 'Test A:';
+                document.getElementById('testLabel2').textContent = 'Test B:';
+                document.getElementById('ratioLabel').textContent = 'Coverage:';
+                document.getElementById('panelHeader1').textContent = '📄 Test A Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Test B Coverage';
+            }} else {{
+                document.getElementById('testLabel1').textContent = 'Test A:';
+                document.getElementById('testLabel2').textContent = 'Test B:';
+                document.getElementById('ratioLabel').textContent = 'Similarity:';
+                document.getElementById('panelHeader1').textContent = '📄 Test A Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Test B Coverage';
+            }}
             
             document.getElementById('subsetName').innerHTML = formatTestName(data.subsetName);
             document.getElementById('supersetName').innerHTML = formatTestName(data.supersetName);

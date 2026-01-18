@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TestIQ Analysis Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .stat-card.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stat-card.success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+        }
+        .stat-card.info {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #00c6ff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+        }
+        th {
+            background: #00c6ff;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 400px;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge-danger {
+            background: #fee;
+            color: #c33;
+        }
+        .badge-warning {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        .badge-info {
+            background: #dfe6e9;
+            color: #2d3436;
+        }
+        .test-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #00c6ff;
+        }
+        .test-name {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            max-width: 100%;
+            line-height: 1.6;
+        }
+        .test-name .test-part {
+            display: inline;
+        }
+        .test-name .test-separator {
+            color: #3498db;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+        .action {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .clickable-row {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .clickable-row:hover {
+            background: #e8f4f8 !important;
+            transform: translateX(3px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10px auto;
+            padding: 0;
+            width: calc(100% - 20px);
+            height: calc(100vh - 20px);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #00c6ff 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .close {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: transform 0.2s;
+        }
+        .close:hover {
+            transform: scale(1.2);
+        }
+        .split-view {
+            display: flex;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+        }
+        .split-view.independent {
+            overflow: hidden;
+        }
+        .file-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #ecf0f1;
+            min-width: 0;
+        }
+        .file-panel.independent {
+            overflow-y: auto;
+        }
+        .file-panel:last-child {
+            border-right: none;
+        }
+        .panel-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #ecf0f1;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        .file-content {
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            background: #fafafa;
+        }
+        .code-line {
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin: 1px 0;
+            white-space: pre;
+        }
+        .covered-both {
+            background: #c8e6c9;
+            border-left: 3px solid #4caf50;
+            font-weight: 600;
+        }
+        .covered-single {
+            background: #fff9c4;
+            border-left: 3px solid #fbc02d;
+            font-weight: 500;
+        }
+        .covered {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+            font-weight: 600;
+        }
+        .not-covered {
+            opacity: 0.6;
+        }
+        .file-path {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .coverage-info {
+            background: #e8f4f8;
+            padding: 15px;
+            margin: 10px 20px;
+            border-left: 4px solid #00c6ff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-select {
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            font-size: 0.85em;
+            background: rgba(255,255,255,0.95);
+            cursor: pointer;
+            min-width: 180px;
+            color: #2c3e50;
+        }
+        .filter-select:hover {
+            background: white;
+            border-color: white;
+        }
+        .sync-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85em;
+            color: #2c3e50;
+        }
+        .sync-toggle:hover {
+            background: white;
+            border-color: white;
+            background: #f0f0ff;
+        }
+        .sync-toggle.active {
+            background: #00c6ff;
+            color: white;
+        }
+        .sync-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+            border-left: 4px solid #00c6ff;
+            border-radius: 4px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .progress-bar {
+            height: 30px;
+            background: #ecf0f1;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            transition: width 0.3s ease;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0 20px 0;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+            position: relative;
+            bottom: -2px;
+        }
+        .tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .tab.active {
+            background: white;
+            color: #00c6ff;
+            border-bottom: 2px solid #00c6ff;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #2c3e50;
+        }
+        .page-size-selector label {
+            font-weight: 600;
+        }
+        .page-size-selector select {
+            padding: 6px 12px;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .page-size-selector select:hover {
+            border-color: #00c6ff;
+            box-shadow: 0 2px 8px rgba(0, 198, 255, 0.2);
+        }
+        .page-size-selector select:focus {
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.1);
+        }
+        .page-btn {
+            padding: 8px 12px;
+            background: #00c6ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .page-btn:hover:not(:disabled) {
+            background: #0088cc;
+            transform: translateY(-2px);
+        }
+        .page-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-info {
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #00c6ff;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00c6ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive: Hide text on small screens, keep only icon */
+        @media (max-width: 768px) {
+            .view-coverage-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 TestIQ Analysis Report</h1>
+        <div class="timestamp">Generated on 2026-01-17 16:31:58</div>
+        
+        <div class="stats">
+            <div class="stat-card" onclick="switchTab('exact')">
+                <div class="stat-value">54</div>
+                <div class="stat-label">Total Test Methods</div>
+            </div>
+            <div class="stat-card danger" onclick="switchTab('exact')">
+                <div class="stat-value">39</div>
+                <div class="stat-label">Duplicates</div>
+            </div>
+            <div class="stat-card warning" onclick="switchTab('subset')">
+                <div class="stat-value">168</div>
+                <div class="stat-label">Subset Duplicates</div>
+            </div>
+            <div class="stat-card info" onclick="switchTab('similar')">
+                <div class="stat-value">45</div>
+                <div class="stat-label">Similar Test Pairs</div>
+            </div>
+        </div>
+
+
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('exact')">🎯 Exact Duplicates (6)</button>
+            <button class="tab" onclick="switchTab('subset')">📊 Subset Duplicates (168)</button>
+            <button class="tab" onclick="switchTab('similar')">🔍 Similar Tests (45)</button>
+        </div>
+
+        <div id="exact-content" class="tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🎯 Exact Duplicates</h2>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="exact-page-size">Items per page:</label>
+                        <select id="exact-page-size" onchange="changePageSize('exact', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="exact-pagination" class="pagination"></div>
+                </div>
+            </div>
+            <p>Tests with identical code coverage that can be safely removed.</p>
+            <div id="exact-table"></div>
+        </div>
+
+        <div id="subset-content" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">📊 Subset Duplicates</h2>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="similar-page-size">Items per page:</label>
+                        <select id="similar-page-size" onchange="changePageSize('similar', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="subset-pagination" class="pagination"></div>
+                </div>
+            </div>
+            <p>Tests that are subsets of other tests and may be redundant.</p>
+            <div id="subset-table"></div>
+        </div>
+
+        <div id="similar-content" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🔍 Similar Tests (≥30% overlap)</h2>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="page-size-selector">
+                        <label for="subset-page-size">Items per page:</label>
+                        <select id="subset-page-size" onchange="changePageSize('subset', parseInt(this.value))">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="999999">All</option>
+                        </select>
+                    </div>
+                    <div id="similar-pagination" class="pagination"></div>
+                </div>
+            </div>
+            <p>Test pairs with significant code coverage overlap that may indicate redundancy.</p>
+            <div id="similar-table"></div>
+        </div>
+
+        <script>
+        // Utility function for escaping HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Utility function to format test names with separators
+        function formatTestName(testName) {
+            // Split test name at :: for better readability
+            const parts = testName.split('::');
+            if (parts.length === 1) return testName;
+            
+            return parts.map((part, idx) => {
+                if (idx === parts.length - 1) {
+                    return '<span class="test-part">' + part + '</span>';
+                }
+                return '<span class="test-part">' + part + '</span><span class="test-separator">::</span><wbr>';
+            }).join('');
+        }
+        
+        // Data for pagination
+        const exactDupsData = [[["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_calculator_addition"], 0], [["examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2"], 1], [["examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_product_calculation", "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2"], 2], [["examples/ai-generated-tests/test_calculator.py::test_division_basic", "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_division_v1"], 3], [["examples/ai-generated-tests/test_calculator.py::test_power_basic", "examples/ai-generated-tests/test_calculator.py::test_power_square", "examples/ai-generated-tests/test_calculator.py::test_power_comprehensive"], 4], [["examples/ai-generated-tests/test_calculator.py::test_modulo_basic", "examples/ai-generated-tests/test_calculator.py::test_modulo_even", "examples/ai-generated-tests/test_calculator.py::test_modulo_comprehensive"], 5]];
+        const subsetData = [["examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.6666666666666666, 6], ["examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.6521739130434783, 7], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.5, 8], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.4666666666666667, 9], ["examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.43478260869565216, 10], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 11], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 12], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 13], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 14], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 15], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 16], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 17], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 18], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 19], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 20], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 21], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 22], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 23], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 24], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 25], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 26], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 27], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 28], ["examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 29], ["examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 30], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 31], ["examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 32], ["examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 33], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 34], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 35], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.3333333333333333, 36], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.3181818181818182, 37], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.30434782608695654, 38], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 39], ["examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 40], ["examples/ai-generated-tests/test_calculator.py::test_product_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 41], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 42], ["examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 43], ["examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 44], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 45], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.2857142857142857, 46], ["examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.2727272727272727, 47], ["examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.2608695652173913, 48], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.22727272727272727, 49], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.21739130434782608, 50], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 51], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 52], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 53], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 54], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 55], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 56], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 57], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 58], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 59], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 60], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 61], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 62], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 63], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 64], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 65], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 66], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.2, 67], ["examples/ai-generated-tests/test_calculator.py::test_division_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 68], ["examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 69], ["examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 70], ["examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 71], ["examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 72], ["examples/ai-generated-tests/test_calculator.py::test_division_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.13636363636363635, 73], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 74], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 75], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 76], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 77], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 78], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 79], ["examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 80], ["examples/ai-generated-tests/test_calculator.py::test_product_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 81], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 82], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 83], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 84], ["examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 85], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 86], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 87], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 88], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 89], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 90], ["examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 91], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 92], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 93], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 94], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 95], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 96], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 97], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.13333333333333333, 98], ["examples/ai-generated-tests/test_calculator.py::test_division_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 99], ["examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 100], ["examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 101], ["examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 102], ["examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 103], ["examples/ai-generated-tests/test_calculator.py::test_division_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.13043478260869565, 104], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 105], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 106], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 107], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 108], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 109], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 110], ["examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 111], ["examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 112], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 113], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 114], ["examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 115], ["examples/ai-generated-tests/test_calculator.py::test_product_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 116], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 117], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 118], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 119], ["examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 120], ["examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 121], ["examples/ai-generated-tests/test_calculator.py::test_power_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 122], ["examples/ai-generated-tests/test_calculator.py::test_power_square", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 123], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 124], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 125], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 126], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 127], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 128], ["examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 129], ["examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 130], ["examples/ai-generated-tests/test_calculator.py::test_power_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 131], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 132], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 133], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 134], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 135], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 136], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 137], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 138], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 139], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.09090909090909091, 140], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 141], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 142], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 143], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 144], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 145], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 146], ["examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 147], ["examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 148], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 149], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 150], ["examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 151], ["examples/ai-generated-tests/test_calculator.py::test_product_calculation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 152], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 153], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 154], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 155], ["examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 156], ["examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 157], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 158], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 159], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 160], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 161], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 162], ["examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 163], ["examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 164], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 165], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 166], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 167], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 168], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 169], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 170], ["examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 171], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 172], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.08695652173913043, 173]];
+        const similarData = [["examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.6666666666666666, 174], ["examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.6666666666666666, 175], ["examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.6521739130434783, 176], ["examples/ai-generated-tests/test_calculator.py::test_division_basic", "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", 0.5, 177], ["examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", 0.5, 178], ["examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", 0.5, 179], ["examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", 0.5, 180], ["examples/ai-generated-tests/test_calculator.py::test_modulo_basic", "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero", 0.5, 181], ["examples/ai-generated-tests/test_calculator.py::test_modulo_even", "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero", 0.5, 182], ["examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", 0.5, 183], ["examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", "examples/ai-generated-tests/test_calculator.py::test_division_v1", 0.5, 184], ["examples/ai-generated-tests/test_calculator.py::test_modulo_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero", 0.5, 185], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", 0.5, 186], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.4666666666666667, 187], ["examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.43478260869565216, 188], ["examples/ai-generated-tests/test_calculator.py::test_addition_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 189], ["examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 190], ["examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 191], ["examples/ai-generated-tests/test_calculator.py::test_addition_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 192], ["examples/ai-generated-tests/test_calculator.py::test_positive_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 193], ["examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 194], ["examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 195], ["examples/ai-generated-tests/test_calculator.py::test_addition_simple", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 196], ["examples/ai-generated-tests/test_calculator.py::test_add_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 197], ["examples/ai-generated-tests/test_calculator.py::test_basic_sum", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 198], ["examples/ai-generated-tests/test_calculator.py::test_calculator_add", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 199], ["examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 200], ["examples/ai-generated-tests/test_calculator.py::test_addition_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 201], ["examples/ai-generated-tests/test_calculator.py::test_addition_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 202], ["examples/ai-generated-tests/test_calculator.py::test_addition_v3", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 203], ["examples/ai-generated-tests/test_calculator.py::test_addition_final", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 204], ["examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", 0.4, 205], ["examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.37037037037037035, 206], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 207], ["examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 208], ["examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 209], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 210], ["examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 211], ["examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 212], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 213], ["examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", 0.3333333333333333, 214], ["examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", 0.3333333333333333, 215], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", 0.3181818181818182, 216], ["examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations", 0.30434782608695654, 217], ["examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", 0.3, 218]];
+        
+        // Build coverage data per file
+        const coverageByFile = {};
+        coverageByFile["calculator.py"] = {lines: 32, tests: 54};
+        
+        let itemsPerPage = { exact: 20, similar: 20, subset: 20 };
+        let currentPages = { exact: 1, similar: 1, subset: 1, coverage: 1 };
+        
+        function changePageSize(type, newSize) {
+            itemsPerPage[type] = newSize;
+            currentPages[type] = 1; // Reset to first page
+            
+            // Re-render the appropriate section
+            if (type === 'exact') {
+                renderExactDuplicates(1);
+            } else if (type === 'similar') {
+                renderSimilarTests(1);
+            } else if (type === 'subset') {
+                renderSubsetDuplicates(1);
+            }
+        }
+        
+        function truncateTestName(testName) {
+            if (!testName || typeof testName !== 'string') {
+                return '';
+            }
+            
+            // Extract just the meaningful parts of the test name
+            const parts = testName.split('::');
+            if (parts.length <= 2) {
+                return testName;
+            }
+            
+            try {
+                // Get the file name (without path)
+                const filePart = parts[0].split('/').pop() || parts[0];
+                // Get the class name (if exists) and test name
+                const classPart = parts.length > 2 ? parts[parts.length - 2] : '';
+                const testPart = parts[parts.length - 1];
+                
+                // Format: FileName::Class::test_name
+                if (classPart) {
+                    return filePart + '::' + classPart + '::' + testPart;
+                } else {
+                    return filePart + '::' + testPart;
+                }
+            } catch (e) {
+                console.error('Error truncating test name:', e);
+                return testName;
+            }
+        }
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Show selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-content').classList.add('active');
+        }
+        
+        function renderExactDuplicates(page) {
+            const pageSize = itemsPerPage['exact'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = exactDupsData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No exact duplicates found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Tests</th>
+                            <th>Count</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([group, coverageIdx], idx) => {
+                    const groupNum = start + idx + 1;
+                    const testList = group.map(test => {
+                        if (!test) return '';
+                        const truncated = truncateTestName(test);
+                        return `<span class="test-name" title="${escapeHtml(test)}" style="cursor: help;">${escapeHtml(truncated)}</span>`;
+                    }).filter(t => t).join('<br>');
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><strong>Group ${groupNum}</strong></td>
+                            <td>${testList}</td>
+                            <td><span class="badge badge-danger">${group.length} tests</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('exact-table').innerHTML = html;
+            renderPagination('exact', exactDupsData.length, page, pageSize);
+            formatTestNames();
+        }
+        
+        function renderSimilarTests(page) {
+            const pageSize = itemsPerPage['similar'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = similarData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No similar tests found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test 1</th>
+                            <th>Test 2</th>
+                            <th>Similarity</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([test1, test2, similarity, coverageIdx]) => {
+                    if (!test1 || !test2) return;
+                    const t1 = escapeHtml(truncateTestName(test1));
+                    const t2 = escapeHtml(truncateTestName(test2));
+                    const simPercent = (similarity * 100).toFixed(1);
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><span class="test-name" title="${escapeHtml(test1)}" style="cursor: help;">${t1}</span></td>
+                            <td><span class="test-name" title="${escapeHtml(test2)}" style="cursor: help;">${t2}</span></td>
+                            <td><span class="badge badge-info">${simPercent}%</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('similar-table').innerHTML = html;
+            renderPagination('similar', similarData.length, page, pageSize);
+            formatTestNames();
+        }
+        
+        function renderSubsetDuplicates(page) {
+            const pageSize = itemsPerPage['subset'];
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = subsetData.slice(start, end);
+            
+            let html = '';
+            if (pageData.length === 0) {
+                html = '<p style="color: #27ae60; text-align: center; padding: 20px;">✓ No subset duplicates found!</p>';
+            } else {
+                html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subset Test</th>
+                            <th>Superset Test</th>
+                            <th>Coverage Ratio</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                pageData.forEach(([subsetTest, supersetTest, ratio, coverageIdx]) => {
+                    if (!subsetTest || !supersetTest) return;
+                    const sub = escapeHtml(truncateTestName(subsetTest));
+                    const sup = escapeHtml(truncateTestName(supersetTest));
+                    const ratioPercent = (ratio * 100).toFixed(1);
+                    html += `
+                        <tr class="clickable-row" onclick="showComparison(${coverageIdx})">
+                            <td><span class="test-name" title="${escapeHtml(subsetTest)}" style="cursor: help;">${sub}</span></td>
+                            <td><span class="test-name" title="${escapeHtml(supersetTest)}" style="cursor: help;">${sup}</span></td>
+                            <td><span class="badge badge-warning">${ratioPercent}%</span></td>
+                            <td><span style="color: #00c6ff; font-weight: 600;">🔍 <span class="view-coverage-text">View Coverage</span></span></td>
+                        </tr>`;
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('subset-table').innerHTML = html;
+            renderPagination('subset', subsetData.length, page, pageSize);
+            formatTestNames();
+        }
+        
+        function renderPagination(type, totalItems, currentPage, pageSize) {
+            const totalPages = Math.ceil(totalItems / pageSize);
+            
+            if (totalPages <= 1) {
+                document.getElementById(type + '-pagination').innerHTML = '';
+                return;
+            }
+            
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, totalItems);
+            
+            let html = '<button class="page-btn" onclick="changePage(\'' + type + '\', ' + (currentPage - 1) + ')" ' +
+                (currentPage === 1 ? 'disabled' : '') + '>← Previous</button>' +
+                '<span class="page-info">' + start + '-' + end + ' of ' + totalItems + ' | Page ' + currentPage + '/' + totalPages + '</span>' +
+                '<button class="page-btn" onclick="changePage(\'' + type + '\', ' + (currentPage + 1) + ')" ' +
+                (currentPage === totalPages ? 'disabled' : '') + '>Next →</button>';
+            
+            document.getElementById(type + '-pagination').innerHTML = html;
+        }
+        
+        function changePage(type, newPage) {
+            currentPages[type] = newPage;
+            
+            if (type === 'exact') {
+                renderExactDuplicates(newPage);
+            } else if (type === 'similar') {
+                renderSimilarTests(newPage);
+            } else if (type === 'subset') {
+                renderSubsetDuplicates(newPage);
+            }
+            
+            // Scroll to top of table
+            document.getElementById(type + '-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function formatTestNames() {
+            const testNames = document.querySelectorAll('.test-name');
+            testNames.forEach(el => {
+                const originalText = el.textContent;
+                if (originalText.includes('::')) {
+                    el.innerHTML = formatTestName(originalText);
+                }
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            renderExactDuplicates(1);
+            renderSimilarTests(1);
+            renderSubsetDuplicates(1);
+        });
+        </script>
+
+        <!-- Modal for split-screen coverage view -->
+        <div id="comparisonModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 style="margin: 0;">📊 Coverage Comparison: Execution Paths</h2>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="filter-section">
+                            <label for="fileFilter" style="font-weight: 600; margin-right: 8px;">📁</label>
+                            <select id="fileFilter" class="filter-select" onchange="applyFileFilter()">
+                                <option value="">All Files</option>
+                            </select>
+                        </div>
+                        <div class="sync-toggle" id="syncToggle" onclick="toggleSync()">
+                            <input type="checkbox" id="syncCheckbox" class="sync-checkbox" checked>
+                            <label for="syncCheckbox" style="cursor: pointer; user-select: none;">🔗 Sync Scroll</label>
+                        </div>
+                        <span class="close" onclick="closeModal()">&times;</span>
+                    </div>
+                </div>
+                <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px 16px; margin: 0 20px 16px; border-radius: 4px; font-size: 14px;">
+                    <strong>ℹ️ Note:</strong> Source code is identical. Highlighting shows <strong>which lines each test executed</strong>. 
+                    Different execution paths are normal due to conditional branches (if/elif/else), early returns, and functions called with different parameters.
+                </div>
+                <div class="coverage-info">
+                    <div>
+                        <strong id="testLabel1">Test 1:</strong> <span id="subsetName" class="test-name"></span>
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong id="testLabel2">Test 2:</strong> <span id="supersetName" class="test-name"></span>
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong id="ratioLabel">Similarity:</strong> <span id="coverageRatio" class="badge badge-warning"></span>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: #f5f5f5; border-radius: 4px; display: inline-flex; gap: 20px; font-size: 13px;">
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #c8e6c9; border-radius: 3px; vertical-align: middle;"></span> Both tests executed</span>
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #fff9c4; border-radius: 3px; vertical-align: middle;"></span> Only one test executed</span>
+                        <span><span style="display: inline-block; width: 16px; height: 16px; background: #ffffff; border: 1px solid #ddd; border-radius: 3px; vertical-align: middle;"></span> Neither test executed</span>
+                    </div>
+                </div>
+                <div class="split-view">
+                    <div class="file-panel">
+                        <div class="panel-header" id="panelHeader1">📄 Test 1 Coverage</div>
+                        <div id="subsetContent" class="file-content"></div>
+                    </div>
+                    <div class="file-panel">
+                        <div class="panel-header" id="panelHeader2">📄 Test 2 Coverage</div>
+                        <div id="supersetContent" class="file-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        const coverageData = [{"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 25]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers"}, {"subset": {"calculator.py": [27, 29]}, "superset": {"calculator.py": [27, 29]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_power_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_power_square"}, {"subset": {"calculator.py": [31, 33, 35]}, "superset": {"calculator.py": [31, 33, 35]}, "ratio": 1.0, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_even"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.6666666666666666, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.6521739130434783, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.4666666666666667, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.43478260869565216, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.3181818181818182, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.30434782608695654, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_product_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.2857142857142857, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}, {"subset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.2727272727272727, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.2608695652173913, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.22727272727272727, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.21739130434782608, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.2, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.13636363636363635, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_product_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.13333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.13043478260869565, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_product_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [27, 29]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_power_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [27, 29]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_power_square", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [27, 29]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_power_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.09090909090909091, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_product_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_by_one", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiply_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [17, 19]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_multiplication_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.08695652173913043, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.6666666666666666, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.6666666666666666, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.6521739130434783, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 24]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_division_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 24]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 24]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_quotient_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 24]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_evenly", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero"}, {"subset": {"calculator.py": [31, 33, 35]}, "superset": {"calculator.py": [31, 33, 34]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero"}, {"subset": {"calculator.py": [31, 33, 35]}, "superset": {"calculator.py": [31, 33, 34]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_even", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero"}, {"subset": {"calculator.py": [21, 23, 25]}, "superset": {"calculator.py": [21, 23, 24]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero"}, {"subset": {"calculator.py": [21, 23, 24]}, "superset": {"calculator.py": [21, 23, 25]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_divide_by_zero", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_division_v1"}, {"subset": {"calculator.py": [31, 33, 35]}, "superset": {"calculator.py": [31, 33, 34]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_modulo_by_zero"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "ratio": 0.5, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.4666666666666667, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40, 52, 57, 58, 59, 60]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.43478260869565216, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_chain_single_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_sum_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_positive_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_small_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_simple", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_basic_sum", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_add", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_add_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_v3", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_addition_final", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11]}, "superset": {"calculator.py": [9, 11, 37, 39, 40]}, "ratio": 0.4, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculator_addition", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only"}, {"subset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.37037037037037035, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_basic", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_two_numbers", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_difference_calculation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_operation", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_positive_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtract_comprehensive", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v1", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [13, 15]}, "superset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_subtraction_v2", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only"}, {"subset": {"calculator.py": [9, 11, 37, 39, 40]}, "superset": {"calculator.py": [9, 11, 17, 19, 37, 39, 40, 41, 43, 44, 52, 57, 58, 59, 60]}, "ratio": 0.3333333333333333, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_add_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_two_operations"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]}, "ratio": 0.3181818181818182, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_comprehensive"}, {"subset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "superset": {"calculator.py": [9, 11, 13, 15, 17, 19, 21, 23, 25, 37, 39, 40, 41, 42, 43, 44, 45, 46, 52, 57, 58, 59, 60]}, "ratio": 0.30434782608695654, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_chain_multiple_operations"}, {"subset": {"calculator.py": [13, 15, 37, 39, 41, 42]}, "superset": {"calculator.py": [17, 19, 37, 39, 41, 43, 44]}, "ratio": 0.3, "subsetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_subtract_only", "supersetName": "examples/ai-generated-tests/test_calculator.py::test_calculate_multiply_only"}];
+        const sourceCode = {"calculator.py": {"1": "\"\"\"", "2": "Simple Calculator - Source Code", "3": "This is intentionally simple to show how AI generates redundant tests.", "4": "\"\"\"", "5": "", "6": "class Calculator:", "7": "    \"\"\"Basic calculator operations\"\"\"", "8": "", "9": "    def add(self, a: float, b: float) -> float:", "10": "        \"\"\"Add two numbers\"\"\"", "11": "        return a + b", "12": "", "13": "    def subtract(self, a: float, b: float) -> float:", "14": "        \"\"\"Subtract b from a\"\"\"", "15": "        return a - b", "16": "", "17": "    def multiply(self, a: float, b: float) -> float:", "18": "        \"\"\"Multiply two numbers\"\"\"", "19": "        return a * b", "20": "", "21": "    def divide(self, a: float, b: float) -> float:", "22": "        \"\"\"Divide a by b\"\"\"", "23": "        if b == 0:", "24": "            raise ValueError(\"Cannot divide by zero\")", "25": "        return a / b", "26": "", "27": "    def power(self, a: float, b: float) -> float:", "28": "        \"\"\"Raise a to power b\"\"\"", "29": "        return a ** b", "30": "", "31": "    def modulo(self, a: int, b: int) -> int:", "32": "        \"\"\"Get remainder of a / b\"\"\"", "33": "        if b == 0:", "34": "            raise ValueError(\"Cannot modulo by zero\")", "35": "        return a % b", "36": "", "37": "    def calculate(self, a: float, b: float, operation: str) -> float:", "38": "        \"\"\"Perform calculation based on operation string\"\"\"", "39": "        if operation == '+':", "40": "            return self.add(a, b)", "41": "        elif operation == '-':", "42": "            return self.subtract(a, b)", "43": "        elif operation == '*':", "44": "            return self.multiply(a, b)", "45": "        elif operation == '/':", "46": "            return self.divide(a, b)", "47": "        elif operation == '**':", "48": "            return self.power(a, b)", "49": "        else:", "50": "            raise ValueError(f\"Unknown operation: {operation}\")", "51": "", "52": "    def chain_operations(self, start: float, operations: list) -> float:", "53": "        \"\"\"Chain multiple operations together", "54": "        operations is list of tuples: [(operation, value), ...]", "55": "        Example: [('+', 5), ('*', 2)] means start + 5, then * 2", "56": "        \"\"\"", "57": "        result = start", "58": "        for operation, value in operations:", "59": "            result = self.calculate(result, value, operation)", "60": "        return result"}};
+        const EXACT_DUPS_COUNT = 6;
+        const SUBSET_START_IDX = 6;
+        const SUBSET_END_IDX = 174;
+        let currentData = null;
+        let syncEnabled = true;
+        let isScrolling = false;
+        
+        function showComparison(index) {{
+            const data = coverageData[index];
+            if (!data) return;
+            
+            currentData = data;
+            
+            // Determine if this is a subset comparison or similar test comparison
+            const isSubset = data.ratio < 1.0 && index >= SUBSET_START_IDX && index < SUBSET_END_IDX;
+            const isExact = data.ratio === 1.0;
+            
+            // Update labels based on comparison type
+            if (isSubset) {{
+                document.getElementById('testLabel1').textContent = 'Subset Test:';
+                document.getElementById('testLabel2').textContent = 'Superset Test:';
+                document.getElementById('ratioLabel').textContent = 'Coverage Ratio:';
+                document.getElementById('panelHeader1').textContent = '📄 Subset Test Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Superset Test Coverage';
+            }} else if (isExact) {{
+                document.getElementById('testLabel1').textContent = 'Test A:';
+                document.getElementById('testLabel2').textContent = 'Test B:';
+                document.getElementById('ratioLabel').textContent = 'Coverage:';
+                document.getElementById('panelHeader1').textContent = '📄 Test A Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Test B Coverage';
+            }} else {{
+                document.getElementById('testLabel1').textContent = 'Test A:';
+                document.getElementById('testLabel2').textContent = 'Test B:';
+                document.getElementById('ratioLabel').textContent = 'Similarity:';
+                document.getElementById('panelHeader1').textContent = '📄 Test A Coverage';
+                document.getElementById('panelHeader2').textContent = '📄 Test B Coverage';
+            }}
+            
+            document.getElementById('subsetName').innerHTML = formatTestName(data.subsetName);
+            document.getElementById('supersetName').innerHTML = formatTestName(data.supersetName);
+            document.getElementById('coverageRatio').textContent = (data.ratio * 100).toFixed(1) + '%';
+            
+            // Populate file filter
+            const allFiles = new Set([...Object.keys(data.subset), ...Object.keys(data.superset)]);
+            const fileFilter = document.getElementById('fileFilter');
+            fileFilter.innerHTML = '<option value="">All Files</option>';
+            Array.from(allFiles).sort().forEach(file => {{
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file;
+                fileFilter.appendChild(option);
+            }});
+            
+            renderBothPanels();
+            
+            document.getElementById('comparisonModal').style.display = 'block';
+            
+            // Scroll to top of the modal
+            const splitView = document.querySelector('.split-view');
+            if (splitView) {{
+                splitView.scrollTop = 0;
+            }}
+        }}
+        
+        function renderBothPanels() {{
+            const selectedFile = document.getElementById('fileFilter').value;
+            
+            // Get all unique files from both sides
+            const subsetFiles = Object.keys(currentData.subset).sort();
+            const supersetFiles = Object.keys(currentData.superset).sort();
+            const allFiles = [...new Set([...subsetFiles, ...supersetFiles])].sort();
+            
+            // Apply file filter
+            const filesToRender = selectedFile ? [selectedFile] : allFiles;
+            
+            let subsetHtml = '';
+            let supersetHtml = '';
+            
+            for (const file of filesToRender) {{
+                const subsetLines = currentData.subset[file] || [];
+                const supersetLines = currentData.superset[file] || [];
+                
+                // Get all unique line numbers from both sides
+                let allLineNums = [...new Set([...subsetLines, ...supersetLines])].sort((a, b) => a - b);
+                
+                if (allLineNums.length === 0) continue;
+                
+                const subsetLineSet = new Set(subsetLines);
+                const supersetLineSet = new Set(supersetLines);
+                const fileSource = sourceCode[file] || {};
+                
+                // Find and include method/class definitions for context
+                const minLine = Math.min(...allLineNums);
+                const maxLine = Math.max(...allLineNums);
+                const contextLines = new Set(allLineNums);
+                
+                // Scan backwards from each covered line to find def/class
+                for (const lineNum of allLineNums) {{
+                    for (let i = lineNum - 1; i >= Math.max(1, minLine - 20); i--) {{
+                        const line = fileSource[i] || '';
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('def ') || trimmed.startsWith('class ') || trimmed.startsWith('async def ')) {{
+                            contextLines.add(i);
+                            break;
+                        }}
+                        // Stop if we hit another definition or empty line followed by def
+                        if (trimmed === '' && i < lineNum - 5) break;
+                    }}
+                }}
+                
+                // Convert back to sorted array
+                allLineNums = Array.from(contextLines).sort((a, b) => a - b);
+                
+                // Add file headers
+                subsetHtml += '<div class="file-section" style="margin-bottom: 30px;">';
+                subsetHtml += '<div class="file-path">📄 ' + escapeHtml(file) + '</div>';
+                
+                supersetHtml += '<div class="file-section" style="margin-bottom: 30px;">';
+                supersetHtml += '<div class="file-path">📄 ' + escapeHtml(file) + '</div>';
+                
+                // Render each line with gap detection
+                let prevLineNum = null;
+                let inDocstring = false;
+                let docstringDelimiter = '';
+                
+                for (let idx = 0; idx < allLineNums.length; idx++) {{
+                    const lineNum = allLineNums[idx];
+                    const sourceLine = fileSource[lineNum] || '';
+                    const trimmed = sourceLine.trim();
+                    
+                    // Track docstring state
+                    if (trimmed.startsWith('"""') || trimmed.startsWith("'''")) {{
+                        const delimiter = trimmed.startsWith('"""') ? '"""' : "'''";
+                        if (!inDocstring) {{
+                            // Starting a docstring
+                            inDocstring = true;
+                            docstringDelimiter = delimiter;
+                            // Check if it's a single-line docstring
+                            const afterDelimiter = trimmed.substring(3);
+                            if (afterDelimiter.includes(delimiter)) {{
+                                inDocstring = false; // Single-line docstring
+                            }}
+                            continue; // Skip docstring opening line
+                        }} else if (inDocstring && delimiter === docstringDelimiter) {{
+                            // Ending a docstring
+                            inDocstring = false;
+                            docstringDelimiter = '';
+                            continue; // Skip docstring closing line
+                        }}
+                    }} else if (inDocstring) {{
+                        // Skip content inside docstring
+                        continue;
+                    }}
+                    
+                    // Handle gap between lines
+                    if (prevLineNum !== null && lineNum - prevLineNum > 1) {{
+                        const gap = lineNum - prevLineNum - 1;
+                        const gapStart = prevLineNum + 1;
+                        const gapEnd = lineNum - 1;
+                        
+                        if (gap > 3) {{
+                            // Show collapsible gap for >3 lines
+                            const gapId = 'gap_' + file.replace(/[^a-zA-Z0-9]/g, '_') + '_' + gapStart + '_' + gapEnd;
+                            const gapText = '... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')';
+                            
+                            subsetHtml += '<div class="code-line gap-line" style="color: #000000; text-align: center; font-style: normal; background: transparent; cursor: pointer; padding: 2px 8px;" ';
+                            subsetHtml += 'data-gap-id="' + gapId + '" data-gap-start="' + gapStart + '" data-gap-end="' + gapEnd + '" data-file="' + escapeHtml(file) + '" ';
+                            subsetHtml += 'onclick="toggleGap(this, \'subset\')" title="Click to expand">';
+                            subsetHtml += '<strong>' + gapText + '</strong>';
+                            subsetHtml += '</div>';
+                            
+                            supersetHtml += '<div class="code-line gap-line" style="color: #000000; text-align: center; font-style: normal; background: transparent; cursor: pointer; padding: 2px 8px;" ';
+                            supersetHtml += 'data-gap-id="' + gapId + '" data-gap-start="' + gapStart + '" data-gap-end="' + gapEnd + '" data-file="' + escapeHtml(file) + '" ';
+                            supersetHtml += 'onclick="toggleGap(this, \'superset\')" title="Click to expand">';
+                            supersetHtml += '<strong>' + gapText + '</strong>';
+                            supersetHtml += '</div>';
+                        }} else {{
+                            // Show lines if gap is 3 or less
+                            for (let gapLine = gapStart; gapLine <= gapEnd; gapLine++) {{
+                                const gapSource = fileSource[gapLine] || '';
+                                const gapLineNumStr = String(gapLine).padStart(4, ' ');
+                                
+                                subsetHtml += '<div class="code-line" style="opacity: 0.4; background: #fafafa;">';
+                                subsetHtml += '<span style="color: #bbb; margin-right: 10px;">' + gapLineNumStr + '</span>';
+                                subsetHtml += '<span style="color: #aaa;">' + escapeHtml(gapSource) + '</span>';
+                                subsetHtml += '</div>';
+                                
+                                supersetHtml += '<div class="code-line" style="opacity: 0.4; background: #fafafa;">';
+                                supersetHtml += '<span style="color: #bbb; margin-right: 10px;">' + gapLineNumStr + '</span>';
+                                supersetHtml += '<span style="color: #aaa;">' + escapeHtml(gapSource) + '</span>';
+                                supersetHtml += '</div>';
+                            }}
+                        }}
+                    }}
+                    
+                    prevLineNum = lineNum;
+                    const lineNumStr = String(lineNum).padStart(4, ' ');
+                    const isDefLine = trimmed.startsWith('def ') || trimmed.startsWith('class ') || trimmed.startsWith('async def ');
+                    
+                    // Determine coverage status
+                    const inSubset = subsetLineSet.has(lineNum);
+                    const inSuperset = supersetLineSet.has(lineNum);
+                    const inBoth = inSubset && inSuperset;
+                    
+                    // Render left side (subset)
+                    if (inBoth) {{
+                        // Both tests executed this line - GREEN
+                        subsetHtml += '<div class="code-line covered-both">';
+                        subsetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetHtml += '</div>';
+                    }} else if (inSubset) {{
+                        // Only subset executed this line - YELLOW
+                        subsetHtml += '<div class="code-line covered-single">';
+                        subsetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetHtml += '</div>';
+                    }} else if (isDefLine) {{
+                        // Show def/class lines as context
+                        subsetHtml += '<div class="code-line" style="background: #e8f4f8; font-weight: 600;">';
+                        subsetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetHtml += escapeHtml(sourceLine);
+                        subsetHtml += '</div>';
+                    }} else {{
+                        // Show actual code dimmed for non-executed lines
+                        subsetHtml += '<div class="code-line" style="opacity: 0.4; background: #fafafa;">';
+                        subsetHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        subsetHtml += '</div>';
+                    }}
+                    
+                    // Render right side (superset)
+                    if (inBoth) {{
+                        // Both tests executed this line - GREEN
+                        supersetHtml += '<div class="code-line covered-both">';
+                        supersetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetHtml += '</div>';
+                    }} else if (inSuperset) {{
+                        // Only superset executed this line - YELLOW
+                        supersetHtml += '<div class="code-line covered-single">';
+                        supersetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetHtml += '</div>';
+                    }} else if (isDefLine) {{
+                        // Show def/class lines as context
+                        supersetHtml += '<div class="code-line" style="background: #e8f4f8; font-weight: 600;">';
+                        supersetHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetHtml += escapeHtml(sourceLine);
+                        supersetHtml += '</div>';
+                    }} else {{
+                        // Show actual code dimmed for non-executed lines
+                        supersetHtml += '<div class="code-line" style="opacity: 0.4; background: #fafafa;">';
+                        supersetHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        supersetHtml += '</div>';
+                    }}
+                }}
+                
+                subsetHtml += '</div>';
+                supersetHtml += '</div>';
+            }}
+            
+            document.getElementById('subsetContent').innerHTML = subsetHtml || '<p style="padding: 20px; color: #7f8c8d;">No coverage data</p>';
+            document.getElementById('supersetContent').innerHTML = supersetHtml || '<p style="padding: 20px; color: #7f8c8d;">No coverage data</p>';
+        }}
+        
+        function applyFileFilter() {{
+            renderBothPanels();
+        }}
+        
+        function toggleSync() {{
+            syncEnabled = !syncEnabled;
+            const checkbox = document.getElementById('syncCheckbox');
+            const toggle = document.getElementById('syncToggle');
+            const splitView = document.querySelector('.split-view');
+            const filePanels = document.querySelectorAll('.file-panel');
+            
+            checkbox.checked = syncEnabled;
+            if (syncEnabled) {{
+                toggle.classList.add('active');
+                // Use single scroll - both panels scroll together
+                splitView.classList.remove('independent');
+                filePanels.forEach(panel => panel.classList.remove('independent'));
+            }} else {{
+                toggle.classList.remove('active');
+                // Enable independent scrolling for each panel
+                splitView.classList.add('independent');
+                filePanels.forEach(panel => panel.classList.add('independent'));
+            }}
+        }}
+        
+        function toggleGap(element, side) {{
+            const gapId = element.getAttribute('data-gap-id');
+            const gapStart = parseInt(element.getAttribute('data-gap-start'));
+            const gapEnd = parseInt(element.getAttribute('data-gap-end'));
+            const file = element.getAttribute('data-file');
+            
+            // Find the corresponding gap in the other panel
+            const otherSide = side === 'subset' ? 'superset' : 'subset';
+            const otherContent = document.getElementById(otherSide + 'Content');
+            const otherGap = otherContent.querySelector('.gap-line[data-gap-id="' + gapId + '"]');
+            
+            // Check if already expanded
+            const isExpanded = element.classList.contains('expanded');
+            
+            if (isExpanded) {{
+                // Collapse both sides - show gap element again
+                const expandedLines = element.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
+                expandedLines.forEach(line => line.remove());
+                element.classList.remove('expanded');
+                element.style.display = 'block';
+                const gap = gapEnd - gapStart + 1;
+                element.innerHTML = '<strong>... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')</strong>';
+                
+                // Collapse other side
+                if (otherGap) {{
+                    const otherExpandedLines = otherGap.parentElement.querySelectorAll('.expanded-line[data-gap-id="' + gapId + '"]');
+                    otherExpandedLines.forEach(line => line.remove());
+                    otherGap.classList.remove('expanded');
+                    otherGap.style.display = 'block';
+                    otherGap.innerHTML = '<strong>... (' + gap + ' line' + (gap > 1 ? 's' : '') + ')</strong>';
+                }}
+            }} else {{
+                // Expand both sides - hide gap element completely
+                element.classList.add('expanded');
+                element.style.display = 'none';
+                
+                const fileSource = sourceCode[file] || {};
+                const subsetLineSet = new Set(currentData.subset[file] || []);
+                const supersetLineSet = new Set(currentData.superset[file] || []);
+                
+                let subsetInsertHtml = '';
+                let supersetInsertHtml = '';
+                
+                // Build in ASCENDING order from gapStart to gapEnd
+                // Show ALL lines when gap is expanded (including docstrings, comments, etc.)
+                for (let lineNum = gapStart; lineNum <= gapEnd; lineNum++) {{
+                    const sourceLine = fileSource[lineNum] || '';
+                    const lineNumStr = String(lineNum).padStart(4, ' ');
+                    
+                    const inSubset = subsetLineSet.has(lineNum);
+                    const inSuperset = supersetLineSet.has(lineNum);
+                    const inBoth = inSubset && inSuperset;
+                    
+                    // Make all expanded lines clickable to collapse
+                    const clickHandler = 'onclick="toggleGap(document.querySelector(\'.gap-line[data-gap-id=\\\'' + gapId + '\\\']\'), \'subset\')" style="cursor: pointer;" title="Click to collapse"';
+                    
+                    // Always show actual source code, with color coding for execution status
+                    // Build subset side HTML
+                    if (inBoth) {{
+                        subsetInsertHtml += '<div class="code-line expanded-line covered-both" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        subsetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetInsertHtml += '</div>';
+                    }} else if (inSubset) {{
+                        subsetInsertHtml += '<div class="code-line expanded-line covered-single" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        subsetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        subsetInsertHtml += '</div>';
+                    }} else {{
+                        // Show actual code even when not executed, just dimmed
+                        subsetInsertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.4; background: #fafafa; cursor: pointer;" onclick="toggleGap(document.querySelector(\'.gap-line[data-gap-id=\\\'' + gapId + '\\\']\'), \'subset\')" title="Click to collapse">';
+                        subsetInsertHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        subsetInsertHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        subsetInsertHtml += '</div>';
+                    }}
+                    
+                    // Build superset side HTML
+                    if (inBoth) {{
+                        supersetInsertHtml += '<div class="code-line expanded-line covered-both" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        supersetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetInsertHtml += '</div>';
+                    }} else if (inSuperset) {{
+                        supersetInsertHtml += '<div class="code-line expanded-line covered-single" data-gap-id="' + gapId + '" ' + clickHandler + '>';
+                        supersetInsertHtml += '<span style="color: #999; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += escapeHtml(sourceLine) || '&nbsp;';
+                        supersetInsertHtml += '</div>';
+                    }} else {{
+                        // Show actual code even when not executed, just dimmed
+                        supersetInsertHtml += '<div class="code-line expanded-line" data-gap-id="' + gapId + '" style="opacity: 0.4; background: #fafafa; cursor: pointer;" onclick="toggleGap(document.querySelector(\'.gap-line[data-gap-id=\\\'' + gapId + '\\\']\'), \'superset\')" title="Click to collapse">';
+                        supersetInsertHtml += '<span style="color: #bbb; margin-right: 10px;">' + lineNumStr + '</span>';
+                        supersetInsertHtml += '<span style="color: #999;">' + escapeHtml(sourceLine) + '</span>';
+                        supersetInsertHtml += '</div>';
+                    }}
+                }}
+                
+                // Insert in correct order: create elements array first, then insert in REVERSE
+                if (side === 'subset') {{
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = subsetInsertHtml;
+                    const elementsArray = Array.from(tempDiv.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray.length - 1; i >= 0; i--) {{
+                        element.parentNode.insertBefore(elementsArray[i], element.nextSibling);
+                    }}
+                }} else {{
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = supersetInsertHtml;
+                    const elementsArray = Array.from(tempDiv.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray.length - 1; i >= 0; i--) {{
+                        element.parentNode.insertBefore(elementsArray[i], element.nextSibling);
+                    }}
+                }}
+                
+                // Expand other side - hide it too
+                if (otherGap) {{
+                    otherGap.classList.add('expanded');
+                    otherGap.style.display = 'none';
+                    
+                    const tempDiv2 = document.createElement('div');
+                    if (otherSide === 'subset') {{
+                        tempDiv2.innerHTML = subsetInsertHtml;
+                    }} else {{
+                        tempDiv2.innerHTML = supersetInsertHtml;
+                    }}
+                    const elementsArray2 = Array.from(tempDiv2.children);
+                    // Insert in REVERSE order to maintain ascending line numbers
+                    for (let i = elementsArray2.length - 1; i >= 0; i--) {{
+                        otherGap.parentNode.insertBefore(elementsArray2[i], otherGap.nextSibling);
+                    }}
+                }}
+            }}
+        }}
+        
+        function closeModal() {{
+            document.getElementById('comparisonModal').style.display = 'none';
+            currentData = null;
+        }}
+        
+        window.onclick = function(event) {{
+            const modal = document.getElementById('comparisonModal');
+            if (event.target == modal) {{
+                closeModal();
+            }}
+        }}
+        
+        document.addEventListener('keydown', function(event) {{
+            if (event.key === 'Escape') {{
+                closeModal();
+            }}
+        }});
+        
+        // Format all test names on page load
+        document.addEventListener('DOMContentLoaded', function() {{
+            const testNames = document.querySelectorAll('.test-name');
+            testNames.forEach(el => {{
+                const originalText = el.textContent;
+                if (originalText.includes('::')) {{
+                    el.innerHTML = formatTestName(originalText);
+                }}
+            }});
+            
+            // Initial render after DOM is loaded and all functions are defined
+            renderExactDuplicates(1);
+            renderSimilarTests(1);
+            renderSubsetDuplicates(1);
+        }});
+        </script>
+        
+        <div class="footer">
+            <p>Generated by <strong>TestIQ v{version}</strong> on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
+            <p>Analysis threshold: {threshold:.1%} | 🔗 <a href="https://github.com/pydevtools/TestIQ" style="color: #00c6ff;">github.com/pydevtools/TestIQ</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -27,6 +27,6 @@ cache_dir = null  # Default: ~/.testiq/cache
 # cache_dir = "/tmp/testiq-cache"
 
 [analysis]
-similarity_threshold = 0.7  # 0.0 to 1.0
-min_coverage_lines = 1
-max_results = 1000
+similarity_threshold = 0.3  # 0.0 to 1.0 (default: 0.3 = 30% overlap)
+min_coverage_lines = 1      # Minimum lines for test to be considered
+max_results = 1000          # Maximum results to display

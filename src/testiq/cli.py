@@ -460,44 +460,95 @@ def display_results(finder: CoverageDuplicateFinder, threshold: float) -> None:
 
 
 @main.command()
-def demo() -> None:
-    """Run a demonstration with sample data."""
-    console.print("[cyan]Running TestIQ demo with sample data...[/cyan]\n")
-
-    finder = CoverageDuplicateFinder()
-
-    # Add sample test data
-    finder.add_test_coverage(
-        "test_user_login_success_1",
-        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
-    )
-
-    finder.add_test_coverage(
-        "test_user_login_success_2",
-        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
-    )
-
-    finder.add_test_coverage("test_user_login_minimal", {SAMPLE_AUTH_FILE: [10, 11, 12]})
-
-    finder.add_test_coverage(
-        "test_user_login_complete",
-        {
-            SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25, 30, 35],
-            SAMPLE_USER_FILE: [5, 6, 7],
-            "db.py": [100, 101],
-        },
-    )
-
-    finder.add_test_coverage(
-        "test_admin_login",
-        {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25, 40], SAMPLE_USER_FILE: [5, 6, 7], "admin.py": [50]},
-    )
-
-    finder.add_test_coverage(
-        "test_password_reset", {"password.py": [1, 2, 3, 4, 5], "email.py": [10, 20]}
-    )
-
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output directory for demo reports (default: current directory)",
+)
+def demo(output_dir: Path | None) -> None:
+    """Run a demonstration using AI-generated-tests example data.
+    
+    This demo showcases real AI-generated test redundancy:
+    - 54 tests with 39 exact duplicates (72% redundant)
+    - 168 subset relationships
+    - 45 similar test pairs
+    """
+    import json
+    from pathlib import Path
+    
+    console.print("[cyan]Running TestIQ demo with AI-generated-tests example...[/cyan]\n")
+    
+    # Try to find the examples directory
+    examples_dir = None
+    
+    # Method 1: Check if running from source (development mode)
+    source_examples = Path(__file__).parent.parent.parent.parent / "examples" / "ai-generated-tests"
+    if source_examples.exists() and (source_examples / "coverage.json").exists():
+        examples_dir = source_examples
+        console.print(f"[dim]Using examples from source: {examples_dir}[/dim]")
+    
+    # Method 2: Check installed package (Python 3.9+ importlib.resources)
+    if not examples_dir:
+        try:
+            if sys.version_info >= (3, 9):
+                from importlib.resources import files
+                examples_path = files('testiq') / 'examples' / 'ai-generated-tests'
+                if examples_path.is_dir() and (examples_path / "coverage.json").is_file():
+                    examples_dir = Path(str(examples_path))
+                    console.print(f"[dim]Using examples from package: {examples_dir}[/dim]")
+        except Exception:
+            pass
+    
+    if not examples_dir or not (examples_dir / "coverage.json").exists():
+        console.print("[yellow]⚠ AI-generated-tests example not found. Using minimal sample data.[/yellow]\n")
+        # Fallback to simple demo
+        finder = CoverageDuplicateFinder()
+        finder.add_test_coverage(
+            "test_user_login_success_1",
+            {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
+        )
+        finder.add_test_coverage(
+            "test_user_login_success_2",
+            {SAMPLE_AUTH_FILE: [10, 11, 12, 15, 20, 25], SAMPLE_USER_FILE: [5, 6, 7]},
+        )
+        finder.add_test_coverage("test_user_login_minimal", {SAMPLE_AUTH_FILE: [10, 11, 12]})
+        display_results(finder, threshold=0.3)
+        return
+    
+    # Load the AI-generated-tests coverage data
+    coverage_file = examples_dir / "coverage.json"
+    console.print(f"[green]✓[/green] Loading coverage data from: {coverage_file}\n")
+    
+    with open(coverage_file) as f:
+        coverage_data = json.load(f)
+    
+    # Analyze using TestIQ
+    finder = CoverageDuplicateFinder(enable_parallel=True, enable_caching=True)
+    
+    for test_name, test_coverage in coverage_data.items():
+        finder.add_test_coverage(test_name, test_coverage)
+    
+    console.print(f"[green]✓[/green] Loaded {len(coverage_data)} tests\n")
+    
+    # Display terminal results
     display_results(finder, threshold=0.3)
+    
+    # Generate HTML report
+    if output_dir is None:
+        output_dir = Path.cwd()
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    output_file = output_dir / "testiq-demo-report.html"
+    console.print(f"\n[cyan]Generating HTML report...[/cyan]")
+    
+    html_gen = HTMLReportGenerator(finder)
+    html_gen.generate(output_file, threshold=0.3)
+    
+    console.print(f"[green]✓[/green] HTML report saved to: {output_file}")
+    console.print(f"\n[cyan]💡 Open the report in your browser:[/cyan]")
+    console.print(f"   file://{output_file.absolute()}\n")
 
 
 if __name__ == "__main__":

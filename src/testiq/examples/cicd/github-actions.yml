@@ -1,0 +1,251 @@
+# Example: GitHub Actions Workflow with TestIQ Integration
+#
+# This workflow demonstrates:
+# - Installing TestIQ in GitHub Actions
+# - Running test analysis with quality gates
+# - Handling failures with proper exit codes
+# - Publishing reports as artifacts
+# - Using baselines with GitHub Actions cache
+# - Setting job status based on quality gate results
+#
+# Note: pytest is now included as a TestIQ dependency, no need to install separately!
+
+name: Test Quality Analysis with TestIQ
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TESTIQ_MAX_DUPLICATES: 10
+  TESTIQ_THRESHOLD: 0.8
+
+jobs:
+  test-quality-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install testiq pytest-cov
+        # Install your project dependencies
+        pip install -r requirements.txt || true
+    
+    - name: 🧪 Run tests with TestIQ plugin
+      run: |
+        # Option 1: Use TestIQ pytest plugin (recommended - per-test coverage)
+        pytest --testiq-output=testiq_coverage.json
+        
+        # Option 2: Use pytest-cov (aggregated coverage)
+        # pytest --cov=src --cov-report=json:coverage.json
+    
+    - name: 📊 Run TestIQ analysis
+      id: testiq-analysis
+      run: |
+        # Create reports directory
+        mkdir -p reports
+        
+        # Generate reports
+        testiq analyze testiq_coverage.json \
+          --format html \
+          --output reports/testiq-report.html
+        
+        testiq analyze testiq_coverage.json \
+          --format csv \
+          --output reports/testiq-summary.csv
+        
+        # Generate quality score
+        testiq quality-score testiq_coverage.json | tee reports/quality-score.txt
+    
+    - name: 🚦 Quality gate check
+      id: quality-gate
+      # continue-on-error allows workflow to continue even if this step fails
+      continue-on-error: true
+      run: |
+        set -e  # Exit on any error
+        
+        echo "🚦 Running quality gate checks..."
+        
+        # Run quality gate with strict thresholds
+        testiq analyze testiq_coverage.json \
+          --quality-gate \
+          --max-duplicates ${{ env.TESTIQ_MAX_DUPLICATES }} \
+          --threshold ${{ env.TESTIQ_THRESHOLD }}
+        
+        echo "✅ Quality gate PASSED"
+    
+    - name: ⚠️ Handle quality gate failure
+      if: steps.quality-gate.outcome == 'failure'
+      run: |
+        echo "::warning::Quality gate failed - too many duplicate tests detected!"
+        echo "::warning::Maximum allowed: ${{ env.TESTIQ_MAX_DUPLICATES }}"
+        echo "::error::Please review the TestIQ report in the artifacts"
+        
+        # Set output for later steps
+        echo "quality_gate_failed=true" >> $GITHUB_OUTPUT
+        
+        # Extract quality score for display
+        QUALITY_SCORE=$(testiq quality-score testiq_coverage.json | grep -oP '\d+/100' | head -1 || echo "N/A")
+        echo "Quality Score: $QUALITY_SCORE" >> $GITHUB_STEP_SUMMARY
+        
+        # Option 1: Fail the job (strict mode)
+        # exit 1
+        
+        # Option 2: Mark as warning only (permissive mode)
+        # exit 0
+        
+        # Option 3: Mark job as failed but continue (current setting)
+        exit 1
+    
+    - name: 💾 Save baseline (main branch only)
+      if: github.ref == 'refs/heads/main' && steps.quality-gate.outcome == 'success'
+      run: |
+        # Save baseline with timestamp
+        BASELINE_NAME="baseline-$(date +%Y%m%d-%H%M%S)"
+        testiq analyze testiq_coverage.json --save-baseline $BASELINE_NAME
+        
+        echo "✅ Baseline saved: $BASELINE_NAME"
+    
+    - name: 📤 Upload TestIQ reports
+      if: always()  # Always upload, even on failure
+      uses: actions/upload-artifact@v4
+      with:
+        name: testiq-reports
+        path: |
+          reports/*.html
+          reports/*.csv
+          reports/*.txt
+        retention-days: 30
+    
+    - name: 📊 Add report to job summary
+      if: always()
+      run: |
+        echo "## TestIQ Analysis Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Add quality score to summary
+        if [ -f reports/quality-score.txt ]; then
+          cat reports/quality-score.txt >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📥 [Download full report from artifacts](../artifacts)" >> $GITHUB_STEP_SUMMARY
+    
+    - name: 💬 Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read quality score
+          let qualityScore = 'N/A';
+          try {
+            const scoreFile = fs.readFileSync('reports/quality-score.txt', 'utf8');
+            qualityScore = scoreFile.split('\n')[0];
+          } catch (e) {
+            console.log('Could not read quality score');
+          }
+          
+          // Create comment
+          const comment = `## 🧪 TestIQ Analysis Results
+          
+          **Quality Score:** ${qualityScore}
+          **Status:** ${{ steps.quality-gate.outcome == 'success' && '✅ Passed' || '⚠️ Failed' }}
+          
+          📊 [View detailed report in artifacts](../../actions/runs/${{ github.run_id }})
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+# Example: Separate job for baseline comparison
+  baseline-comparison:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: 📦 Install TestIQ
+      run: pip install testiq
+    
+    - name: 🧪 Run tests with TestIQ plugin
+      run: |
+        pytest --testiq-output=testiq_coverage.json
+    
+    - name: 📊 Compare with baseline
+      continue-on-error: true
+      run: |
+        # Compare with production baseline
+        testiq analyze testiq_coverage.json \
+          --baseline production-baseline \
+          --format text > reports/baseline-comparison.txt || true
+        
+        if [ -f reports/baseline-comparison.txt ]; then
+          cat reports/baseline-comparison.txt
+        fi
+
+# Example: Matrix strategy for multiple Python versions
+  test-quality-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install and analyze
+      run: |
+        pip install testiq
+        pytest --testiq-output=testiq_coverage.json
+        testiq quality-score testiq_coverage.json
+
+# Example: Scheduled quality checks
+  scheduled-quality-check:
+    runs-on: ubuntu-latest
+    # Run every day at 9 AM UTC
+    # Uncomment to enable:
+    # schedule:
+    #   - cron: '0 9 * * *'
+    if: false  # Disabled by default
+    
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Run quality check
+      run: |
+        pip install testiq
+        pytest --testiq-output=testiq_coverage.json
+        testiq analyze testiq_coverage.json --quality-gate --max-duplicates 5

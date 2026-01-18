@@ -1,0 +1,252 @@
+// Example: Jenkins Pipeline with TestIQ Integration
+//
+// This Jenkinsfile demonstrates:
+// - Installing TestIQ in Jenkins environment
+// - Running test analysis with quality gates
+// - Handling failures and setting build status
+// - Archiving reports and publishing results
+// - Using baselines for trend tracking
+//
+// Note: pytest is now included as a TestIQ dependency!
+
+pipeline {
+    agent any
+    
+    environment {
+        // Python virtual environment
+        VENV_PATH = "${WORKSPACE}/venv"
+        // TestIQ configuration
+        TESTIQ_BASELINE = "production-baseline"
+        TESTIQ_MAX_DUPLICATES = "10"
+        TESTIQ_DUPLICATE_THRESHOLD = "0.8"
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    echo "🔧 Setting up TestIQ environment..."
+                    
+                    // Create virtual environment
+                    sh '''
+                        python3 -m venv ${VENV_PATH}
+                        . ${VENV_PATH}/bin/activate
+                        pip install --upgrade pip
+                        pip install testiq
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                script {
+                    echo "🧪 Running test suite..."
+                    
+                    // Run your test suite with coverage
+                    sh '''
+                        . ${VENV_PATH}/bin/activate
+                        pytest --cov=. --cov-report=json:coverage.json
+                    '''
+                }
+            }
+        }
+        
+        stage('TestIQ Analysis') {
+            steps {
+                script {
+                    echo "📊 Analyzing test quality with TestIQ..."
+                    
+                    // Run TestIQ analysis and save reports
+                    sh '''
+                        . ${VENV_PATH}/bin/activate
+                        
+                        # Create reports directory
+                        mkdir -p reports
+                        
+                        # Generate comprehensive reports
+                        testiq analyze coverage.json \
+                            --format html \
+                            --output reports/testiq-report.html \
+                            --verbose
+                        
+                        testiq analyze coverage.json \
+                            --format csv \
+                            --output reports/testiq-summary.csv
+                    '''
+                }
+            }
+        }
+        
+        stage('Quality Gate') {
+            steps {
+                script {
+                    echo "🚦 Checking quality gates..."
+                    
+                    try {
+                        // Run quality gate check
+                        sh '''
+                            . ${VENV_PATH}/bin/activate
+                            
+                            # Quality gate with strict thresholds
+                            testiq analyze coverage.json \
+                                --quality-gate \
+                                --max-duplicates ${TESTIQ_MAX_DUPLICATES} \
+                                --threshold ${TESTIQ_DUPLICATE_THRESHOLD} \
+                                --fail-on-increase
+                        '''
+                        
+                        echo "✅ Quality gate PASSED"
+                        currentBuild.result = 'SUCCESS'
+                        
+                    } catch (Exception e) {
+                        // Quality gate failed - mark build as unstable
+                        echo "⚠️ Quality gate FAILED: ${e.message}"
+                        echo "❌ Too many duplicate tests detected!"
+                        
+                        // Set build status to UNSTABLE (not FAILURE)
+                        // This allows pipeline to continue but marks build as problematic
+                        currentBuild.result = 'UNSTABLE'
+                        
+                        // Still generate quality score for visibility
+                        sh '''
+                            . ${VENV_PATH}/bin/activate
+                            testiq quality-score coverage.json > reports/quality-score.txt
+                        '''
+                        
+                        // Throw error to stop pipeline if needed
+                        // error("Quality gate failed - build marked as UNSTABLE")
+                    }
+                }
+            }
+        }
+        
+        stage('Baseline Management') {
+            when {
+                // Only save baseline on main/master branch
+                branch pattern: "main|master", comparator: "REGEXP"
+            }
+            steps {
+                script {
+                    echo "💾 Saving baseline for trend tracking..."
+                    
+                    sh '''
+                        . ${VENV_PATH}/bin/activate
+                        
+                        # Save baseline with timestamp
+                        BUILD_BASELINE="${TESTIQ_BASELINE}-${BUILD_NUMBER}"
+                        testiq analyze coverage.json \
+                            --save-baseline ${BUILD_BASELINE}
+                        
+                        # List all baselines
+                        testiq baseline list
+                        
+                        # Compare with previous baseline
+                        testiq analyze coverage.json \
+                            --compare-baseline ${TESTIQ_BASELINE} \
+                            --output reports/baseline-comparison.txt || true
+                    '''
+                }
+            }
+        }
+        
+        stage('Publish Results') {
+            steps {
+                script {
+                    echo "📤 Publishing TestIQ reports..."
+                    
+                    // Archive HTML reports
+                    archiveArtifacts artifacts: 'reports/*.html,reports/*.csv,reports/*.txt', 
+                                     allowEmptyArchive: true
+                    
+                    // Publish HTML reports (requires HTML Publisher plugin)
+                    publishHTML([
+                        reportDir: 'reports',
+                        reportFiles: 'testiq-report.html',
+                        reportName: 'TestIQ Analysis Report',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true
+                    ])
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                echo "🧹 Cleaning up..."
+                
+                // Always show quality score summary
+                sh '''
+                    . ${VENV_PATH}/bin/activate || true
+                    testiq quality-score coverage.json || echo "Could not generate quality score"
+                '''
+            }
+        }
+        
+        success {
+            echo "✅ Pipeline completed successfully!"
+            echo "📊 View TestIQ report in build artifacts"
+        }
+        
+        unstable {
+            echo "⚠️ Pipeline completed with warnings"
+            echo "⚠️ Quality gate failed - please review duplicate tests"
+            echo "📊 See TestIQ report for details"
+            
+            // Optional: Send notification
+            // emailext subject: "TestIQ Quality Gate Failed - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            //          body: "Check TestIQ report: ${env.BUILD_URL}TestIQ_Analysis_Report",
+            //          to: "${env.CHANGE_AUTHOR_EMAIL}"
+        }
+        
+        failure {
+            echo "❌ Pipeline failed!"
+            echo "Check logs for errors"
+        }
+        
+        cleanup {
+            // Clean up virtual environment
+            sh 'rm -rf ${VENV_PATH}'
+        }
+    }
+}
+
+// Example: Declarative Pipeline with Shared Library
+// @Library('testiq-shared-lib') _
+//
+// pipeline {
+//     agent any
+//     stages {
+//         stage('Test Quality Check') {
+//             steps {
+//                 testIQAnalysis(
+//                     coverageFile: 'coverage.json',
+//                     maxDuplicates: 10,
+//                     threshold: 0.8,
+//                     failOnIncrease: true,
+//                     baseline: 'production-baseline'
+//                 )
+//             }
+//         }
+//     }
+// }
+
+// Example: Scripted Pipeline with Error Handling
+// node {
+//     stage('TestIQ Analysis') {
+//         def exitCode = sh(
+//             script: '''
+//                 . venv/bin/activate
+//                 testiq analyze coverage.json --quality-gate --max-duplicates 10
+//             ''',
+//             returnStatus: true
+//         )
+//         
+//         if (exitCode != 0) {
+//             currentBuild.result = 'UNSTABLE'
+//             error("Quality gate failed with exit code: ${exitCode}")
+//         }
+//     }
+// }

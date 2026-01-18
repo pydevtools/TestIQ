@@ -4,7 +4,7 @@ TestIQ - Intelligent Test Analysis
 Find duplicate and redundant tests using coverage analysis.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from testiq.analyzer import CoverageDuplicateFinder, CoverageData
 

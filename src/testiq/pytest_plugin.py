@@ -69,6 +69,17 @@ class TestIQPlugin:
         if filename.startswith("<"):  # <string>, <stdin>, etc.
             return False
 
+        # Exclude test files - we only want source code coverage
+        path = Path(filename)
+        if path.name.startswith("test_") or path.name.endswith("_test.py"):
+            return False
+        if "/tests/" in filename or "/test/" in filename:
+            # Allow if it's not a test file itself (e.g., helpers in tests/ dir)
+            if not (path.name.startswith("test_") or path.name.endswith("_test.py")):
+                pass  # Could be a helper, allow it
+            else:
+                return False
+
         # Include files in current working directory
         try:
             Path(filename).relative_to(Path.cwd())
