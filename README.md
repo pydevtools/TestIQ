@@ -10,7 +10,7 @@
 **TestIQ v0.2.1** - Catch duplicate and redundant tests before they pollute your codebase. Perfect for AI-generated test suites.
 
 <p align="center">
-  <img src="docs/screenshots/testiq_test_dup.png" alt="TestIQ Duplicate Detection" width="800"/>
+  <img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_dup.png" alt="TestIQ Duplicate Detection" width="800"/>
 </p>
 
 ---
@@ -72,18 +72,18 @@ Total tests: 47
 ## 📸 Screenshots
 
 ### Exact Duplicates Detection
-<img src="docs/screenshots/testiq_test_dup.png" alt="Exact Duplicates" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_dup.png" alt="Exact Duplicates" width="800"/>
 
 ### Side-by-Side Coverage Comparison
-<img src="docs/screenshots/testiq_test_dup_compare.png" alt="Coverage Comparison" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_dup_compare.png" alt="Coverage Comparison" width="800"/>
 
 ### Subset Duplicates (Tests Completely Covered by Others)
-<img src="docs/screenshots/testiq_test_subset.png" alt="Subset Duplicates" width="800"/>
-<img src="docs/screenshots/testiq_test_subset_compare.png" alt="Subset Comparison" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_subset.png" alt="Subset Duplicates" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_subset_compare.png" alt="Subset Comparison" width="800"/>
 
 ### Similar Test Detection
-<img src="docs/screenshots/testiq_test_similar.png" alt="Similar Tests" width="800"/>
-<img src="docs/screenshots/testiq_test_similar_compare.png" alt="Similar Test Comparison" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_similar.png" alt="Similar Tests" width="800"/>
+<img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_similar_compare.png" alt="Similar Test Comparison" width="800"/>
 
 ---
 
