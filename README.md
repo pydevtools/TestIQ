@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/pydevtools/TestIQ)](LICENSE)
 [![Code Quality](https://img.shields.io/badge/quality-A%2B-brightgreen)](reports/duplicates.html)
 
-**TestIQ v0.2.1** - Catch duplicate and redundant tests before they pollute your codebase. Perfect for AI-generated test suites.
+**TestIQ v0.2.2** - Catch duplicate and redundant tests before they pollute your codebase. Perfect for AI-generated test suites.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/pydevtools/TestIQ/main/docs/screenshots/testiq_test_dup.png" alt="TestIQ Duplicate Detection" width="800"/>

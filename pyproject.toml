@@ -1,6 +1,6 @@
 [project]
 name = "testiq"
-version = "0.2.1"
+version = "0.2.2"
 description = "TestIQ - Intelligent test analysis for finding duplicate and redundant tests using coverage analysis"
 readme = "README.md"
 authors = [
